@@ -23,7 +23,9 @@ const Icons = {
   Lock: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
   X: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>,
   Barcode: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/><path d="M3 12h18"/><path d="M8 12v12"/><path d="M17 12v12"/></svg>,
-  Camera: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+  Camera: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
+  Upload: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
+  User: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 };
 
 const COURIERS = [
@@ -47,9 +49,9 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_USERS = [
-  { username: 'student1', email: 'student1@ipgkpp.edu', password: '123456', name: 'Ahmad Ali', idNo: 'D20201234', phone: '012-3456789', role: 'student', createdAt: new Date('2024-01-15T08:00:00').toISOString() },
-  { username: 'staff1', email: 'staff1@ipgkpp.edu', password: '123456', name: 'Siti Aminah', idNo: 'ST-9988', phone: '013-9876543', role: 'staff', createdAt: new Date('2024-03-20T10:30:00').toISOString() },
-  { username: 'admin', email: 'admin@ipgkpp.edu', password: '123456', name: 'Admin Office', idNo: 'ADM-001', phone: '011-1111111', role: 'admin', createdAt: new Date('2023-06-01T09:00:00').toISOString() },
+  { username: 'student1', email: 'student1@ipgkpp.edu', password: '123456', name: 'Ahmad Ali', idNo: 'D20201234', phone: '012-3456789', role: 'student', profilePic: '', createdAt: new Date('2024-01-15T08:00:00').toISOString() },
+  { username: 'staff1', email: 'staff1@ipgkpp.edu', password: '123456', name: 'Siti Aminah', idNo: 'ST-9988', phone: '013-9876543', role: 'staff', profilePic: '', createdAt: new Date('2024-03-20T10:30:00').toISOString() },
+  { username: 'admin', email: 'admin@ipgkpp.edu', password: '123456', name: 'Admin Office', idNo: 'ADM-001', phone: '011-1111111', role: 'admin', profilePic: '', createdAt: new Date('2023-06-01T09:00:00').toISOString() },
 ];
 
 const DEFAULT_PARCELS = [
@@ -205,6 +207,29 @@ const STYLES = {
     color: '#475569',
     transition: 'all 0.15s',
   },
+  userAvatar: (size = 32) => ({
+    width: size,
+    height: size,
+    borderRadius: '50%',
+    objectFit: 'cover',
+    backgroundColor: '#e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    flexShrink: 0,
+  }),
+  avatarPlaceholder: (size = 32) => ({
+    width: size,
+    height: size,
+    borderRadius: '50%',
+    backgroundColor: '#e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#94a3b8',
+    flexShrink: 0,
+  }),
   dropdown: {
     position: 'absolute',
     top: 'calc(100% + 8px)',
@@ -479,6 +504,61 @@ const STYLES = {
     fontWeight: 500,
     marginTop: '12px',
   },
+  profilePicUpload: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '20px',
+  },
+  profilePicPreview: {
+    width: '100px',
+    height: '100px',
+    borderRadius: '50%',
+    objectFit: 'cover',
+    backgroundColor: '#e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    border: '3px solid #e2e8f0',
+    transition: 'border-color 0.2s',
+  },
+  profilePicPlaceholder: {
+    width: '100px',
+    height: '100px',
+    borderRadius: '50%',
+    backgroundColor: '#e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#94a3b8',
+    border: '3px dashed #cbd5e1',
+  },
+  uploadBtn: {
+    padding: '8px 20px',
+    backgroundColor: '#ffffff',
+    color: '#4f46e5',
+    border: '1px solid #4f46e5',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  removePicBtn: {
+    padding: '6px 12px',
+    backgroundColor: '#fef2f2',
+    color: '#dc2626',
+    border: '1px solid #fecaca',
+    borderRadius: '6px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  },
 };
 
 function formatDate(dateString) {
@@ -510,10 +590,8 @@ function BarcodeScanner({ onScan, onClose }) {
   const [lastScanned, setLastScanned] = useState('');
   const [error, setError] = useState('');
   const [isLibraryLoaded, setIsLibraryLoaded] = useState(false);
-  const [cameraPermission, setCameraPermission] = useState('prompt');
 
   useEffect(() => {
-    // Load html5-qrcode library dynamically
     if (window.Html5Qrcode) {
       setIsLibraryLoaded(true);
       return;
@@ -531,7 +609,9 @@ function BarcodeScanner({ onScan, onClose }) {
     document.head.appendChild(script);
     
     return () => {
-      document.head.removeChild(script);
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
     };
   }, []);
 
@@ -557,33 +637,27 @@ function BarcodeScanner({ onScan, onClose }) {
           { facingMode: "environment" },
           config,
           (decodedText) => {
-            // Successful scan
             clearTimeout(scanTimeout);
             setLastScanned(decodedText);
             setIsScanning(false);
             
-            // Stop scanner after successful scan
             if (qrCodeInstance) {
               qrCodeInstance.stop().then(() => {
                 qrCodeInstance.clear();
               }).catch(() => {});
             }
             
-            // Auto-register after short delay
             scanTimeout = setTimeout(() => {
               onScan(decodedText);
             }, 500);
           },
-          () => {
-            // Scan failure - silent
-          }
+          () => {}
         );
         setIsScanning(true);
       } catch (err) {
         console.error('Scanner error:', err);
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           setError('Camera permission denied. Please allow camera access and try again.');
-          setCameraPermission('denied');
         } else if (err.name === 'NotFoundError') {
           setError('No camera found on this device.');
         } else {
@@ -605,7 +679,7 @@ function BarcodeScanner({ onScan, onClose }) {
   }, [isLibraryLoaded]);
 
   return (
-    <Modal title="📦 Scan Barcode" onClose={onClose} large>
+    <Modal title=" Scan Barcode" onClose={onClose} large>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <p style={{ fontSize: '13px', color: '#64748b', margin: 0, textAlign: 'center' }}>
           Point your camera at the parcel barcode to auto-fill the tracking number
@@ -618,17 +692,12 @@ function BarcodeScanner({ onScan, onClose }) {
           </div>
         ) : error ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '48px', marginBottom: '12px' }}>📷</div>
+            <div style={{ fontSize: '48px', marginBottom: '12px' }}></div>
             <p style={{ color: '#dc2626', fontSize: '14px', margin: '0 0 8px 0' }}>{error}</p>
             <p style={{ color: '#64748b', fontSize: '12px', margin: 0 }}>
               Make sure you're using HTTPS and have granted camera permissions.
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              style={{ ...STYLES.btnPrimary, marginTop: '16px', maxWidth: '200px', margin: '16px auto 0' }}
-            >
-              Reload Page
-            </button>
+            <button onClick={() => window.location.reload()} style={{ ...STYLES.btnPrimary, marginTop: '16px', maxWidth: '200px', margin: '16px auto 0' }}>Reload Page</button>
           </div>
         ) : (
           <>
@@ -659,12 +728,121 @@ function BarcodeScanner({ onScan, onClose }) {
         )}
 
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            onClick={onClose}
-            style={{ ...STYLES.btnPrimary, backgroundColor: '#f1f5f9', color: '#334155' }}
-          >
-            Close Scanner
-          </button>
+          <button onClick={onClose} style={{ ...STYLES.btnPrimary, backgroundColor: '#f1f5f9', color: '#334155' }}>Close Scanner</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// Profile Picture Upload Component
+function ProfilePicUpload({ currentUser, onUpdate, onClose }) {
+  const fileInputRef = useRef(null);
+  const [preview, setPreview] = useState(currentUser?.profilePic || '');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please select an image file (JPG, PNG, GIF)');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('Image size must be less than 2MB');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError('');
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Data = event.target.result;
+      setPreview(base64Data);
+      setIsUploading(false);
+      
+      // Save to user profile
+      onUpdate(base64Data);
+    };
+    reader.onerror = () => {
+      setUploadError('Failed to read image file');
+      setIsUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePic = () => {
+    setPreview('');
+    onUpdate('');
+  };
+
+  return (
+    <Modal title=" Profile Picture" onClose={onClose} large>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+        <p style={{ fontSize: '13px', color: '#64748b', margin: 0, textAlign: 'center' }}>
+          Upload a profile picture to personalize your account
+        </p>
+
+        <div style={STYLES.profilePicUpload}>
+          {preview ? (
+            <img src={preview} alt="Profile" style={STYLES.profilePicPreview} />
+          ) : (
+            <div style={STYLES.profilePicPlaceholder}>
+              <Icons.User width={40} height={40} />
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={STYLES.uploadBtn}
+              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#eef2ff'; }}
+              onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; }}
+              disabled={isUploading}
+            >
+              <Icons.Upload width={16} height={16} />
+              {isUploading ? 'Uploading...' : 'Choose Photo'}
+            </button>
+
+            {preview && (
+              <button
+                onClick={handleRemovePic}
+                style={STYLES.removePicBtn}
+                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#fee2e2'; }}
+                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#fef2f2'; }}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+
+          {uploadError && (
+            <p style={{ color: '#dc2626', fontSize: '12px', margin: 0, textAlign: 'center' }}>
+              {uploadError}
+            </p>
+          )}
+
+          <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, textAlign: 'center' }}>
+            Supported formats: JPG, PNG, GIF • Max size: 2MB
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', width: '100%', maxWidth: '280px' }}>
+          <button onClick={onClose} style={{ ...STYLES.btnPrimary, backgroundColor: '#f1f5f9', color: '#334155' }}>Done</button>
         </div>
       </div>
     </Modal>
@@ -684,6 +862,7 @@ export default function ParcelManagementSystem() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannedTracking, setScannedTracking] = useState('');
+  const [picModalOpen, setPicModalOpen] = useState(false);
   const menuRef = useRef(null);
 
   const [mockUsers, setMockUsers] = useState(() => {
@@ -802,7 +981,7 @@ export default function ParcelManagementSystem() {
 
   const handleSignUp = (data) => {
     if (mockUsers.some(u => u.username === data.username || u.email === data.email)) { alert('Account already exists'); return; }
-    const newUser = { ...data, createdAt: new Date().toISOString() };
+    const newUser = { ...data, profilePic: '', createdAt: new Date().toISOString() };
     setMockUsers(prev => [...prev, newUser]);
     alert('Account created successfully');
     setView('login');
@@ -868,6 +1047,12 @@ export default function ParcelManagementSystem() {
     alert('Password updated successfully!');
   };
 
+  const handleUpdateProfilePic = (picData) => {
+    const updatedUser = { ...user, profilePic: picData };
+    setUser(updatedUser);
+    setMockUsers(prev => prev.map(u => u.username === updatedUser.username ? updatedUser : u));
+  };
+
   const handleBarcodeScan = (decodedText) => {
     const cleanText = decodedText.trim().toUpperCase();
     setScannedTracking(cleanText);
@@ -892,6 +1077,22 @@ export default function ParcelManagementSystem() {
     arrived: filtered.filter(p => p.status === 'Arrived').length,
     collected: filtered.filter(p => p.status === 'Collected').length,
     overdue: filtered.filter(p => p.status === 'Overdue').length
+  };
+
+  const getUserInitials = (name) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const renderAvatar = (size = 32) => {
+    if (user?.profilePic) {
+      return <img src={user.profilePic} alt={user.name} style={STYLES.userAvatar(size)} />;
+    }
+    return (
+      <div style={STYLES.avatarPlaceholder(size)}>
+        <Icons.User width={size * 0.55} height={size * 0.55} />
+      </div>
+    );
   };
 
   if (!user) return <AuthView onLogin={handleLogin} onSignUp={handleSignUp} view={view === 'dashboard' ? 'login' : view} setView={setView} />;
@@ -957,11 +1158,18 @@ export default function ParcelManagementSystem() {
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               style={STYLES.userMenuBtn}
             >
-              <Icons.Menu width={20} height={20} />
+              {renderAvatar(28)}
               {!isMobile && <span style={{ fontSize: '14px', fontWeight: 500 }}>{user.name}</span>}
             </button>
             {userMenuOpen && (
               <div style={STYLES.dropdown}>
+                <div style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f1f5f9', marginBottom: '4px' }}>
+                  {renderAvatar(40)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 600, fontSize: '14px', margin: 0, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</p>
+                    <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</p>
+                  </div>
+                </div>
                 <button
                   onClick={() => { setActiveModal('viewInfo'); setUserMenuOpen(false); }}
                   style={STYLES.dropdownItem}
@@ -977,6 +1185,14 @@ export default function ParcelManagementSystem() {
                   onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
                 >
                   <Icons.Edit width={18} height={18} /> Change Info
+                </button>
+                <button
+                  onClick={() => { setPicModalOpen(true); setUserMenuOpen(false); }}
+                  style={STYLES.dropdownItem}
+                  onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#eef2ff'; e.currentTarget.style.color = '#4f46e5'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                >
+                  <Icons.Camera width={18} height={18} /> Profile Picture
                 </button>
                 <button
                   onClick={() => { setActiveModal('details'); setUserMenuOpen(false); }}
@@ -1076,6 +1292,15 @@ export default function ParcelManagementSystem() {
       {activeModal === 'viewInfo' && (
         <Modal onClose={() => setActiveModal(null)} title="Your Information">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+              {user?.profilePic ? (
+                <img src={user.profilePic} alt={user.name} style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #e2e8f0' }} />
+              ) : (
+                <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                  <Icons.User width={36} height={36} />
+                </div>
+              )}
+            </div>
             <DetailRow label="Name" value={user.name} />
             <DetailRow label="Email" value={user.email} />
             <DetailRow label="Phone" value={user.phone || 'Not set'} />
@@ -1101,19 +1326,9 @@ export default function ParcelManagementSystem() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14px' }}>
             <DetailRow label="Status" value="● Active" valueColor="#16a34a" />
             <DetailRow label="Verification" value="Email & Phone Verified" valueColor="#2563eb" />
-            <DetailRow 
-              label="Member Since" 
-              value={user.createdAt ? formatDate(user.createdAt) : 'N/A'} 
-            />
-            <DetailRow 
-              label="Duration" 
-              value={user.createdAt ? getTimeAgo(user.createdAt) : ''} 
-              valueColor="#4f46e5"
-            />
-            <DetailRow 
-              label="Last Login" 
-              value={user.lastLogin ? currentTime.toLocaleString() : 'Just now'} 
-            />
+            <DetailRow label="Member Since" value={user.createdAt ? formatDate(user.createdAt) : 'N/A'} />
+            <DetailRow label="Duration" value={user.createdAt ? getTimeAgo(user.createdAt) : ''} valueColor="#4f46e5" />
+            <DetailRow label="Last Login" value={user.lastLogin ? currentTime.toLocaleString() : 'Just now'} />
           </div>
         </Modal>
       )}
@@ -1130,9 +1345,14 @@ export default function ParcelManagementSystem() {
       )}
 
       {scannerOpen && (
-        <BarcodeScanner
-          onScan={handleBarcodeScan}
-          onClose={() => setScannerOpen(false)}
+        <BarcodeScanner onScan={handleBarcodeScan} onClose={() => setScannerOpen(false)} />
+      )}
+
+      {picModalOpen && (
+        <ProfilePicUpload
+          currentUser={user}
+          onUpdate={handleUpdateProfilePic}
+          onClose={() => setPicModalOpen(false)}
         />
       )}
     </div>
@@ -1423,10 +1643,7 @@ function AdminView({ parcels, form, setForm, onAdd, onUpdate, onDelete, onOpenSc
       <div style={STYLES.card}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ fontWeight: 600, color: '#0f172a', margin: 0, fontSize: '16px' }}>Register Incoming Parcel</h3>
-          <button
-            type="button"
-            onClick={onOpenScanner}
-            style={STYLES.btnSecondary}
+          <button type="button" onClick={onOpenScanner} style={STYLES.btnSecondary}
             onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
             onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
           >
@@ -1440,19 +1657,8 @@ function AdminView({ parcels, form, setForm, onAdd, onUpdate, onDelete, onOpenSc
               Tracking Number {scannedTracking && <span style={{ color: '#16a34a', fontWeight: 400, textTransform: 'none', letterSpacing: 'normal' }}>✓ Scanned from barcode</span>}
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input 
-                value={form.trackingNo} 
-                onChange={up('trackingNo')} 
-                placeholder="Tracking Number (or scan barcode)" 
-                style={{ ...STYLES.input, flex: 1, borderColor: scannedTracking ? '#86efac' : '#cbd5e1' }} 
-                required 
-              />
-              <button
-                type="button"
-                onClick={onOpenScanner}
-                style={{ ...STYLES.btnSecondary, flexShrink: 0, padding: '10px 14px' }}
-                title="Scan barcode"
-              >
+              <input value={form.trackingNo} onChange={up('trackingNo')} placeholder="Tracking Number (or scan barcode)" style={{ ...STYLES.input, flex: 1, borderColor: scannedTracking ? '#86efac' : '#cbd5e1' }} required />
+              <button type="button" onClick={onOpenScanner} style={{ ...STYLES.btnSecondary, flexShrink: 0, padding: '10px 14px' }} title="Scan barcode">
                 <Icons.Camera width={18} height={18} />
               </button>
             </div>
@@ -1466,13 +1672,7 @@ function AdminView({ parcels, form, setForm, onAdd, onUpdate, onDelete, onOpenSc
               ))}
             </select>
             {isOthers && (
-              <input 
-                value={form.senderOther} 
-                onChange={up('senderOther')} 
-                placeholder="Enter courier name" 
-                style={STYLES.input} 
-                required={isOthers}
-              />
+              <input value={form.senderOther} onChange={up('senderOther')} placeholder="Enter courier name" style={STYLES.input} required={isOthers} />
             )}
           </div>
 
