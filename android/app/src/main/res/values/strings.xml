@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">IPGKPP Parcel Management</string>
+    <string name="title_activity_main">IPGKPP Parcel Management</string>
+    <string name="package_name">com.ipgkpp.parcel</string>
+    <string name="custom_url_scheme">com.ipgkpp.parcel</string>
+</resources>
