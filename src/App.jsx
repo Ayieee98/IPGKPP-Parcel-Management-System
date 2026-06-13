@@ -109,6 +109,18 @@ const DEFAULT_RACKS = ['A', 'B', 'C'].map(rackLetter => ({
   })),
 }));
 
+const normalizeRacks = (value) => {
+  if (!Array.isArray(value)) return DEFAULT_RACKS;
+  const isValid = value.every(rack =>
+    rack &&
+    typeof rack === 'object' &&
+    typeof rack.id === 'string' &&
+    typeof rack.letter === 'string' &&
+    Array.isArray(rack.shelves)
+  );
+  return isValid ? value : DEFAULT_RACKS;
+};
+
 const THEMES = {
   light: {
     name: 'light',
@@ -266,6 +278,7 @@ function UniversalScanner({ onScan, onClose, theme, mode: initialMode = 'auto' }
   const qrInstanceRef = useRef(null);
   const fileInputRef = useRef(null);
   const manualInputRef = useRef(null);
+  const [scannerContainerId] = useState(() => `barcode-scanner-container-${Date.now()}`);
 
   const [activeMode, setActiveMode] = useState('auto'); // auto, camera, image, manual, clipboard
   const [isScanning, setIsScanning] = useState(false);
@@ -372,7 +385,7 @@ function UniversalScanner({ onScan, onClose, theme, mode: initialMode = 'auto' }
     await safeStopScanner();
 
     try {
-      const instance = new window.Html5Qrcode(`barcode-scanner-container-${Date.now()}`);
+      const instance = new window.Html5Qrcode(scannerContainerId);
       qrInstanceRef.current = instance;
       const config = { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.0, disableFlip: false };
       await instance.start({ facingMode: "environment" }, config, (decodedText) => {
@@ -562,7 +575,7 @@ function UniversalScanner({ onScan, onClose, theme, mode: initialMode = 'auto' }
             ) : (
               <>
                 <div style={styles.scannerContainer}>
-                  <div id={`barcode-scanner-container-${Date.now()}`} ref={scannerRef} style={{ width: '100%', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.textSecondary, fontSize: '13px' }}>
+                  <div id={scannerContainerId} ref={scannerRef} style={{ width: '100%', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.textSecondary, fontSize: '13px' }}>
                     {!isScanning && !isStarting && 'Camera preview will appear here'}
                   </div>
                   {isScanning && (<><div style={styles.scannerOverlay}></div><div style={styles.scannerLine}></div></>)}
@@ -1074,7 +1087,7 @@ export default function ParcelManagementSystem() {
   });
 
   const [racks, setRacks] = useState(() => {
-    try { const saved = localStorage.getItem(STORAGE_KEYS.RACKS); return saved ? JSON.parse(saved) : DEFAULT_RACKS; } catch { return DEFAULT_RACKS; }
+    try { const saved = localStorage.getItem(STORAGE_KEYS.RACKS); return saved ? normalizeRacks(JSON.parse(saved)) : DEFAULT_RACKS; } catch { return DEFAULT_RACKS; }
   });
 
   const [adminForm, setAdminForm] = useState({ trackingNo: '', sender: '', senderOther: '', recipient: '', status: 'Pending', location: 'Main Post Office', description: '', assignRack: false, selectedRackShelf: '' });
@@ -1179,6 +1192,8 @@ export default function ParcelManagementSystem() {
     if (!adminForm.trackingNo || !adminForm.recipient) return;
     const senderValue = adminForm.sender === 'Others' ? adminForm.senderOther : adminForm.sender;
     if (!senderValue) return;
+    const newParcelId = Date.now();
+    const parcelWeight = parseFloat((Math.random() * 5 + 0.5).toFixed(1));
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     let assignedRack = null;
 
@@ -1187,14 +1202,14 @@ export default function ParcelManagementSystem() {
       const shelf = racks.find(r => r.letter === rackLetter)?.shelves.find(s => s.id === adminForm.selectedRackShelf);
       if (shelf?.maintenance) { alert(`Shelf ${adminForm.selectedRackShelf} is under maintenance. Please select another shelf or clear maintenance first.`); return; }
       assignedRack = adminForm.selectedRackShelf;
-      setRacks(prev => prev.map(r => r.letter === rackLetter ? { ...r, shelves: r.shelves.map(s => s.id === adminForm.selectedRackShelf ? { ...s, status: 'occupied', parcelId: Date.now(), weight: parseFloat((Math.random() * 5 + 0.5).toFixed(1)) } : s) } : prev));
+      setRacks(prev => prev.map(r => r.letter === rackLetter ? { ...r, shelves: r.shelves.map(s => s.id === adminForm.selectedRackShelf ? { ...s, status: 'occupied', parcelId: newParcelId, weight: parcelWeight } : s) } : r));
     } else if (adminForm.assignRack) {
       let assigned = false;
       for (const rack of racks) {
         const emptyShelf = rack.shelves.find(s => s.status === 'empty' && !s.maintenance);
         if (emptyShelf) {
           assignedRack = emptyShelf.id;
-          setRacks(prev => prev.map(r => r.id === rack.id ? { ...r, shelves: r.shelves.map(s => s.id === emptyShelf.id ? { ...s, status: 'occupied', parcelId: Date.now(), weight: parseFloat((Math.random() * 5 + 0.5).toFixed(1)) } : s) } : prev));
+          setRacks(prev => prev.map(r => r.id === rack.id ? { ...r, shelves: r.shelves.map(s => s.id === emptyShelf.id ? { ...s, status: 'occupied', parcelId: newParcelId, weight: parcelWeight } : s) } : r));
           assigned = true;
           break;
         }
@@ -1202,7 +1217,7 @@ export default function ParcelManagementSystem() {
       if (!assigned) { alert('No available shelves found. Some shelves may be under maintenance.'); return; }
     }
 
-    const newParcel = { ...adminForm, sender: senderValue, id: Date.now(), dateReceived: new Date().toISOString().split('T')[0], otp: otp, status: adminForm.status || 'Pending', rackLocation: assignedRack, weight: `${(Math.random() * 5 + 0.5).toFixed(1)}kg` };
+    const newParcel = { ...adminForm, sender: senderValue, id: newParcelId, dateReceived: new Date().toISOString().split('T')[0], otp: otp, status: adminForm.status || 'Pending', rackLocation: assignedRack, weight: `${parcelWeight}kg` };
     delete newParcel.senderOther;
     delete newParcel.assignRack;
     delete newParcel.selectedRackShelf;
@@ -1223,7 +1238,7 @@ export default function ParcelManagementSystem() {
     if (window.confirm('Are you sure you want to delete this parcel record?')) {
       if (parcel?.rackLocation) {
         const [rackLetter] = parcel.rackLocation.split('-');
-        setRacks(prev => prev.map(r => r.letter === rackLetter ? { ...r, shelves: r.shelves.map(s => s.id === parcel.rackLocation ? { ...s, status: 'empty', parcelId: null, weight: 0 } : s) } : prev));
+        setRacks(prev => prev.map(r => r.letter === rackLetter ? { ...r, shelves: r.shelves.map(s => s.id === parcel.rackLocation ? { ...s, status: 'empty', parcelId: null, weight: 0 } : s) } : r));
       }
       setParcels(p => p.filter(parcel => parcel.id !== id));
     }
@@ -1235,7 +1250,7 @@ export default function ParcelManagementSystem() {
     if (status === 'Collected' && parcel) {
       if (parcel.rackLocation) {
         const [rackLetter] = parcel.rackLocation.split('-');
-        setRacks(prev => prev.map(r => r.letter === rackLetter ? { ...r, shelves: r.shelves.map(s => s.id === parcel.rackLocation ? { ...s, status: 'empty', parcelId: null, weight: 0 } : s) } : prev));
+        setRacks(prev => prev.map(r => r.letter === rackLetter ? { ...r, shelves: r.shelves.map(s => s.id === parcel.rackLocation ? { ...s, status: 'empty', parcelId: null, weight: 0 } : s) } : r));
       }
     }
   };
