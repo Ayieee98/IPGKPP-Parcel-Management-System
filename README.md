@@ -1,6 +1,24 @@
 # IPGKPP-Parcel-Management-System
 A system that will be a use to manage and sort any courier parcel, package that arrived at IPGKPP parcel sorting centre
 
+## Cloud Database Setup
+
+This app can sync users, parcels, racks, and login sessions across devices with Supabase.
+
+1. Create a Supabase project.
+2. Open Supabase SQL Editor and run `supabase-schema.sql`.
+3. Copy `.env.example` to `.env`.
+4. Fill in:
+
+```env
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+5. Restart the Vite dev server.
+
+When these environment variables are present, the app uses Supabase. Without them, it falls back to the original local browser storage mode.
+
 ## React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

@@ -1,4 +1,18 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  clearCloudSession,
+  getCloudProfileByEmail,
+  getSavedCloudSession,
+  getCloudState,
+  isCloudConfigured,
+  listCloudProfiles,
+  refreshCloudSession,
+  saveCloudState,
+  signInCloudUser,
+  signUpCloudUser,
+  updateCloudPassword,
+  upsertCloudProfile,
+} from './services/cloudStore';
 
 const IPGKPP_LOGO = 'https://image.qwenlm.ai/public_source/a5365ccb-778a-4d10-aedb-64b519a3dff3/10c2878d5-8e35-49f7-9978-d6f399874b81.png';
 const IPGKPP_BG = 'https://image.qwenlm.ai/public_source/a5365ccb-778a-4d10-aedb-64b519a3dff3/1ee67feb7-707c-4c46-8395-a946662c0e1d.png';
@@ -335,7 +349,7 @@ function UniversalScanner({ onScan, onClose, theme, mode: initialMode = 'auto' }
     script.onerror = () => setError('Failed to load scanner library. Please check your internet connection.');
     document.head.appendChild(script);
     return () => { if (document.head.contains(script)) document.head.removeChild(script); };
-  }, []);
+  }, [setProfileForm, setView]);
 
   // Auto-detect best mode on mount
   useEffect(() => {
@@ -1057,6 +1071,9 @@ export default function ParcelManagementSystem() {
   const [notification, setNotification] = useState(null);
   const [selectedShelf, setSelectedShelf] = useState(null);
   const [maintenanceModal, setMaintenanceModal] = useState(null);
+  const [cloudSession, setCloudSession] = useState(null);
+  const [cloudReady, setCloudReady] = useState(!isCloudConfigured);
+  const cloudPollRef = useRef(null);
 
   const [theme, setTheme] = useState(() => {
     try {
@@ -1079,14 +1096,17 @@ export default function ParcelManagementSystem() {
   const parcelsRef = useRef([]);
 
   const [mockUsers, setMockUsers] = useState(() => {
+    if (isCloudConfigured) return [];
     try { const saved = localStorage.getItem(STORAGE_KEYS.USERS); return saved ? JSON.parse(saved) : DEFAULT_USERS; } catch { return DEFAULT_USERS; }
   });
 
   const [parcels, setParcels] = useState(() => {
+    if (isCloudConfigured) return [];
     try { const saved = localStorage.getItem(STORAGE_KEYS.PARCELS); return saved ? JSON.parse(saved) : DEFAULT_PARCELS; } catch { return DEFAULT_PARCELS; }
   });
 
   const [racks, setRacks] = useState(() => {
+    if (isCloudConfigured) return DEFAULT_RACKS;
     try { const saved = localStorage.getItem(STORAGE_KEYS.RACKS); return saved ? normalizeRacks(JSON.parse(saved)) : DEFAULT_RACKS; } catch { return DEFAULT_RACKS; }
   });
 
@@ -1095,6 +1115,62 @@ export default function ParcelManagementSystem() {
   const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
 
   useEffect(() => { parcelsRef.current = parcels; }, [parcels]);
+
+  const loadCloudData = useCallback(async (session = getSavedCloudSession(), silent = false) => {
+    if (!isCloudConfigured) return;
+
+    if (!silent) setCloudReady(false);
+    try {
+      let activeSession = session;
+      const expiresAt = activeSession?.expires_at ? activeSession.expires_at * 1000 : 0;
+      if (activeSession?.refresh_token && expiresAt && expiresAt < Date.now() + 60000) {
+        activeSession = await refreshCloudSession(activeSession);
+      }
+
+      const token = activeSession?.access_token;
+      const [profiles, cloudParcels, cloudRacks] = await Promise.all([
+        listCloudProfiles(token),
+        getCloudState('parcels', DEFAULT_PARCELS, token),
+        getCloudState('racks', DEFAULT_RACKS, token),
+      ]);
+
+      setCloudSession(activeSession || null);
+      setMockUsers(profiles);
+      setParcels(Array.isArray(cloudParcels) ? cloudParcels : DEFAULT_PARCELS);
+      setRacks(normalizeRacks(cloudRacks));
+
+      if (activeSession?.user?.email) {
+        const profile = await getCloudProfileByEmail(activeSession.user.email, token);
+        setUser(profile);
+        setProfileForm({ name: profile.name, email: profile.email, phone: profile.phone || '', address: '' });
+        setView('dashboard');
+      }
+    } catch (error) {
+      console.error('Cloud sync failed:', error);
+      if (silent) return;
+      clearCloudSession();
+      setCloudSession(null);
+      setUser(null);
+      setMockUsers([]);
+      setParcels(DEFAULT_PARCELS);
+      setRacks(DEFAULT_RACKS);
+    } finally {
+      if (!silent) setCloudReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isCloudConfigured) return;
+    loadCloudData();
+  }, [loadCloudData]);
+
+  useEffect(() => {
+    if (!isCloudConfigured || !cloudReady) return;
+    cloudPollRef.current = setInterval(() => {
+      loadCloudData(cloudSession || getSavedCloudSession(), true);
+    }, 10000);
+    return () => clearInterval(cloudPollRef.current);
+  }, [cloudReady, cloudSession, loadCloudData]);
 
   useEffect(() => {
     const checkOverdue = () => {
@@ -1117,11 +1193,29 @@ export default function ParcelManagementSystem() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(mockUsers)); } catch (e) {} }, [mockUsers]);
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.PARCELS, JSON.stringify(parcels)); } catch (e) {} }, [parcels]);
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.RACKS, JSON.stringify(racks)); } catch (e) {} }, [racks]);
+  useEffect(() => {
+    if (isCloudConfigured) return;
+    try { localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(mockUsers)); } catch (e) {}
+  }, [mockUsers]);
 
   useEffect(() => {
+    if (!isCloudConfigured) {
+      try { localStorage.setItem(STORAGE_KEYS.PARCELS, JSON.stringify(parcels)); } catch (e) {}
+      return;
+    }
+    if (cloudReady && cloudSession?.access_token) saveCloudState('parcels', parcels, cloudSession.access_token).catch(error => console.error('Failed to save parcels:', error));
+  }, [parcels, cloudReady, cloudSession]);
+
+  useEffect(() => {
+    if (!isCloudConfigured) {
+      try { localStorage.setItem(STORAGE_KEYS.RACKS, JSON.stringify(racks)); } catch (e) {}
+      return;
+    }
+    if (cloudReady && cloudSession?.access_token) saveCloudState('racks', racks, cloudSession.access_token).catch(error => console.error('Failed to save racks:', error));
+  }, [racks, cloudReady, cloudSession]);
+
+  useEffect(() => {
+    if (isCloudConfigured) return;
     try {
       const savedSession = localStorage.getItem(STORAGE_KEYS.SESSION);
       if (savedSession) { const parsed = JSON.parse(savedSession); setUser(parsed); setProfileForm({ name: parsed.name, email: parsed.email, phone: parsed.phone || '', address: '' }); }
@@ -1129,6 +1223,7 @@ export default function ParcelManagementSystem() {
   }, []);
 
   useEffect(() => {
+    if (isCloudConfigured) return;
     if (user) { try { localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(user)); } catch {} }
     else { try { localStorage.removeItem(STORAGE_KEYS.SESSION); } catch {} }
   }, [user]);
@@ -1155,15 +1250,56 @@ export default function ParcelManagementSystem() {
 
   const showNotification = (message) => { setNotification(message); setTimeout(() => setNotification(null), 5000); };
 
-  const handleLogin = (username, password) => {
+  const handleLogin = async (username, password) => {
+    if (isCloudConfigured) {
+      try {
+        const { session, user: loggedUser } = await signInCloudUser(username, password);
+        setCloudSession(session);
+        setUser(loggedUser);
+        setProfileForm({ name: loggedUser.name, email: loggedUser.email, phone: loggedUser.phone || '', address: '' });
+        setView('dashboard');
+        await loadCloudData(session);
+      } catch (error) {
+        console.error('Cloud login failed:', error);
+        alert('Invalid credentials or cloud account not found.');
+      }
+      return;
+    }
+
     const found = mockUsers.find(u => u.username === username && u.password === password);
     if (found) { const loggedUser = { ...found, lastLogin: new Date().toISOString() }; setUser(loggedUser); setProfileForm({ name: found.name, email: found.email, phone: found.phone || '', address: '' }); setView('dashboard'); }
     else alert('Invalid credentials');
   };
 
-  const handleLogout = () => { setUser(null); setView('login'); setUserMenuOpen(false); localStorage.removeItem(STORAGE_KEYS.SESSION); };
+  const handleLogout = () => {
+    setUser(null);
+    setView('login');
+    setUserMenuOpen(false);
+    if (isCloudConfigured) {
+      clearCloudSession();
+      setCloudSession(null);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.SESSION);
+    }
+  };
 
-  const handleSignUp = (data) => {
+  const handleSignUp = async (data) => {
+    if (isCloudConfigured) {
+      try {
+        if (mockUsers.some(u => u.username === data.username || u.email === data.email)) { alert('Account already exists'); return; }
+        const { session } = await signUpCloudUser(data);
+        if (session) setCloudSession(session);
+        const profiles = await listCloudProfiles(session?.access_token);
+        setMockUsers(profiles);
+        alert('Account created successfully. Please sign in.');
+        setView('login');
+      } catch (error) {
+        console.error('Cloud signup failed:', error);
+        alert('Unable to create cloud account. Please check Supabase setup and try again.');
+      }
+      return;
+    }
+
     if (mockUsers.some(u => u.username === data.username || u.email === data.email)) { alert('Account already exists'); return; }
     const newUser = { ...data, profilePic: '', createdAt: new Date().toISOString() };
     setMockUsers(prev => [...prev, newUser]);
@@ -1265,18 +1401,48 @@ export default function ParcelManagementSystem() {
     else { setFoundParcel(null); alert('Parcel not found.'); }
   };
 
-  const handleSaveInfo = () => {
+  const handleSaveInfo = async () => {
     if (!profileForm.name || !profileForm.email) { alert('Name and email are required'); return; }
     const updatedUser = { ...user, ...profileForm };
+    if (isCloudConfigured) {
+      try {
+        const cloudUser = { ...updatedUser, email: user.email };
+        if (profileForm.email !== user.email) alert('Email login is managed by Supabase Auth and was kept unchanged.');
+        const savedUser = await upsertCloudProfile(cloudUser, cloudSession?.access_token);
+        setUser(savedUser);
+        setProfileForm({ name: savedUser.name, email: savedUser.email, phone: savedUser.phone || '', address: '' });
+        setMockUsers(prev => prev.map(u => u.username === savedUser.username ? savedUser : u));
+        setActiveModal(null);
+        alert('Profile updated successfully!');
+      } catch (error) {
+        console.error('Cloud profile update failed:', error);
+        alert('Unable to update cloud profile.');
+      }
+      return;
+    }
+
     setUser(updatedUser);
     setMockUsers(prev => prev.map(u => u.username === updatedUser.username ? updatedUser : u));
     setActiveModal(null);
     alert('Profile updated successfully!');
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (passwordForm.new !== passwordForm.confirm) { alert('Passwords do not match'); return; }
     if (passwordForm.new.length < 6) { alert('Password must be at least 6 characters'); return; }
+    if (isCloudConfigured) {
+      try {
+        await updateCloudPassword(cloudSession, passwordForm.new);
+        setPasswordForm({ current: '', new: '', confirm: '' });
+        setActiveModal(null);
+        alert('Password updated successfully!');
+      } catch (error) {
+        console.error('Cloud password update failed:', error);
+        alert('Unable to update password. Please sign in again and retry.');
+      }
+      return;
+    }
+
     const updatedUser = { ...user, password: passwordForm.new };
     setUser(updatedUser);
     setMockUsers(prev => prev.map(u => u.username === updatedUser.username ? updatedUser : u));
@@ -1285,8 +1451,20 @@ export default function ParcelManagementSystem() {
     alert('Password updated successfully!');
   };
 
-  const handleUpdateProfilePic = (picData) => {
+  const handleUpdateProfilePic = async (picData) => {
     const updatedUser = { ...user, profilePic: picData };
+    if (isCloudConfigured) {
+      try {
+        const savedUser = await upsertCloudProfile(updatedUser, cloudSession?.access_token);
+        setUser(savedUser);
+        setMockUsers(prev => prev.map(u => u.username === savedUser.username ? savedUser : u));
+      } catch (error) {
+        console.error('Cloud profile picture update failed:', error);
+        alert('Unable to update profile picture.');
+      }
+      return;
+    }
+
     setUser(updatedUser);
     setMockUsers(prev => prev.map(u => u.username === updatedUser.username ? updatedUser : u));
   };
@@ -1338,6 +1516,14 @@ export default function ParcelManagementSystem() {
     if (user?.profilePic) return <img src={user.profilePic} alt={user.name} style={styles.userAvatar(size)} />;
     return (<div style={styles.avatarPlaceholder(size)}><Icons.User width={size * 0.55} height={size * 0.55} /></div>);
   };
+
+  if (isCloudConfigured && !cloudReady) {
+    return (
+      <div style={{ minHeight: '100vh', background: themeObj.authBg || '#0f172a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+        Syncing cloud data...
+      </div>
+    );
+  }
 
   if (!user) return <AuthView onLogin={handleLogin} onSignUp={handleSignUp} view={view === 'dashboard' ? 'login' : view} setView={setView} theme={themeObj} />;
 
