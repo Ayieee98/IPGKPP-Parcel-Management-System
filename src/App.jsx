@@ -349,7 +349,7 @@ function UniversalScanner({ onScan, onClose, theme, mode: initialMode = 'auto' }
     script.onerror = () => setError('Failed to load scanner library. Please check your internet connection.');
     document.head.appendChild(script);
     return () => { if (document.head.contains(script)) document.head.removeChild(script); };
-  }, [setProfileForm, setView]);
+  }, []);
 
   // Auto-detect best mode on mount
   useEffect(() => {
@@ -367,6 +367,34 @@ function UniversalScanner({ onScan, onClose, theme, mode: initialMode = 'auto' }
     }
   }, [initialMode, isSecureContext, isLocalhost]);
 
+  const safeStopScanner = async () => {
+    if (!isUnmountingRef.current) setIsStarting(true);
+    try {
+      if (qrInstanceRef.current) {
+        const instance = qrInstanceRef.current;
+        qrInstanceRef.current = null;
+        try {
+          const isRunning = typeof instance.isScanning === 'boolean'
+            ? instance.isScanning
+            : typeof instance.isScanning === 'function'
+              ? instance.isScanning()
+              : true;
+          if (isRunning) await instance.stop();
+        } catch (error) {
+          console.warn('Scanner stop skipped:', error);
+        }
+        try { await instance.clear(); } catch (error) { console.warn('Scanner clear skipped:', error); }
+      }
+    } catch (error) {
+      console.warn('Scanner cleanup failed:', error);
+    } finally {
+      if (!isUnmountingRef.current) {
+        setIsStarting(false);
+        setIsScanning(false);
+      }
+    }
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -375,19 +403,6 @@ function UniversalScanner({ onScan, onClose, theme, mode: initialMode = 'auto' }
       safeStopScanner();
     };
   }, []);
-
-  const safeStopScanner = async () => {
-    setIsStarting(true);
-    try {
-      if (qrInstanceRef.current) {
-        const instance = qrInstanceRef.current;
-        qrInstanceRef.current = null;
-        try { if (typeof instance.isScanning === 'function' && instance.isScanning()) await instance.stop(); } catch (e) {}
-        try { await instance.clear(); } catch (e) {}
-      }
-    } catch (e) {}
-    finally { setIsStarting(false); setIsScanning(false); }
-  };
 
   const startCameraScanner = async () => {
     if (!scannerRef.current || !isLibraryLoaded) return;
