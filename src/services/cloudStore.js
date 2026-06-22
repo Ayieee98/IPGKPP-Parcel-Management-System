@@ -1,5 +1,7 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+import { supabaseUrl as FALLBACK_SUPABASE_URL, supabaseAnonKey as FALLBACK_SUPABASE_ANON_KEY } from './supabaseClient';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;
 
 export const isCloudConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
