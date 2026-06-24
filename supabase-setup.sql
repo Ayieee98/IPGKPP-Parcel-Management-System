@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 -- ===== Create Parcels Table =====
 -- Stores parcel records
 CREATE TABLE IF NOT EXISTS public.parcels (
-  id serial PRIMARY KEY,
+  id bigint PRIMARY KEY,
   trackingNo text,
   sender text,
   recipient text,
@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS public.parcels (
   weight text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Run this once if the parcels table already exists with serial/integer id.
+ALTER TABLE public.parcels ALTER COLUMN id TYPE bigint;
 
 -- ===== Create Racks Table =====
 -- Stores rack configuration (JSON structure with all shelves)

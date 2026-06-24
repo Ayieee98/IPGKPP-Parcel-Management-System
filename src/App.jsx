@@ -89,26 +89,9 @@ const STORAGE_KEYS = {
   THEME: 'ipgkpp_theme_preference'
 };
 
-const getDaysAgo = (days) => {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().split('T')[0];
-};
+const DEFAULT_USERS = [];
 
-const DEFAULT_USERS = [
-  { username: 'student1', email: 'student1@ipgkpp.edu', password: '123456', name: 'Ahmad Ali', idNo: 'D20201234', phone: '012-3456789', role: 'student', profilePic: '', createdAt: new Date('2024-01-15T08:00:00').toISOString() },
-  { username: 'staff1', email: 'staff1@ipgkpp.edu', password: '123456', name: 'Siti Aminah', idNo: 'ST-9988', phone: '013-9876543', role: 'staff', profilePic: '', createdAt: new Date('2024-03-20T10:30:00').toISOString() },
-  { username: 'admin', email: 'admin@ipgkpp.edu', password: '123456', name: 'Admin Office', idNo: 'ADM-001', phone: '011-1111111', role: 'admin', profilePic: '', createdAt: new Date('2023-06-01T09:00:00').toISOString() },
-];
-
-const DEFAULT_PARCELS = [
-  { id: 1, trackingNo: 'PKG-8821X', sender: 'Shopee Express', recipient: 'student1', status: 'Arrived', dateReceived: getDaysAgo(1), location: 'Main Post Office', description: 'Academic Textbooks & Stationery', otp: '849201', rackLocation: 'A-1', weight: '2.5kg' },
-  { id: 2, trackingNo: 'PL-4490A', sender: 'Pos Laju', recipient: 'staff1', status: 'Pending', dateReceived: getDaysAgo(0), location: 'Admin Counter', description: 'Departmental Office Supplies', otp: '123456', rackLocation: 'B-2', weight: '1.2kg' },
-  { id: 3, trackingNo: 'JT-7723B', sender: 'J&T Express', recipient: 'student1', status: 'Overdue', dateReceived: getDaysAgo(10), location: 'Storage Room B', description: 'Personal Clothing Items', otp: '654321', rackLocation: 'C-3', weight: '3.8kg' },
-  { id: 4, trackingNo: 'DHL-9910C', sender: 'DHL eCommerce', recipient: 'admin', status: 'Collected', dateReceived: getDaysAgo(5), location: 'Admin Counter', description: 'Server Maintenance Parts', otp: '987654', rackLocation: 'A-4', weight: '5.1kg' },
-  { id: 5, trackingNo: 'FE-1123D', sender: 'FedEx', recipient: 'student1', status: 'Arrived', dateReceived: getDaysAgo(4), location: 'Main Post Office', description: 'Electronics', otp: '112233', rackLocation: 'B-4', weight: '0.8kg' },
-  { id: 6, trackingNo: 'UPS-5566E', sender: 'UPS', recipient: 'staff1', status: 'Arrived', dateReceived: getDaysAgo(2), location: 'Admin Counter', description: 'Medical Supplies', otp: '445566', rackLocation: 'C-5', weight: '1.5kg' },
-];
+const DEFAULT_PARCELS = [];
 
 const DEFAULT_RACKS = ['A', 'B', 'C'].map(rackLetter => ({
   id: `RACK-${rackLetter}`,
@@ -136,6 +119,24 @@ const normalizeRacks = (value) => {
     Array.isArray(rack.shelves)
   );
   return isValid ? value : DEFAULT_RACKS;
+};
+
+const MAX_POSTGRES_INT = 2147483647;
+
+const generateParcelId = (existingParcels = []) => {
+  const usedIds = new Set(existingParcels.map(parcel => Number(parcel.id)));
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    let id;
+    if (window.crypto?.getRandomValues) {
+      const values = new Uint32Array(1);
+      window.crypto.getRandomValues(values);
+      id = (values[0] % MAX_POSTGRES_INT) + 1;
+    } else {
+      id = Math.floor(Math.random() * MAX_POSTGRES_INT) + 1;
+    }
+    if (!usedIds.has(id)) return id;
+  }
+  return Math.floor(Date.now() / 1000);
 };
 
 const THEMES = {
@@ -1115,7 +1116,7 @@ export default function ParcelManagementSystem() {
   const menuRef = useRef(null);
   const parcelsRef = useRef([]);
 
-  const [mockUsers, setMockUsers] = useState(() => {
+  const [users, setUsers] = useState(() => {
     if (isCloudConfigured) return [];
     try { const saved = localStorage.getItem(STORAGE_KEYS.USERS); return saved ? JSON.parse(saved) : DEFAULT_USERS; } catch { return DEFAULT_USERS; }
   });
@@ -1161,7 +1162,7 @@ export default function ParcelManagementSystem() {
 
       cloudHydratingRef.current = true;
       setCloudSession(activeSession || null);
-      setMockUsers(profiles);
+      setUsers(profiles);
       setParcels(Array.isArray(cloudParcels) ? cloudParcels : DEFAULT_PARCELS);
       setRacks(normalizeRacks(cloudRacks));
 
@@ -1183,7 +1184,7 @@ export default function ParcelManagementSystem() {
       clearCloudSession();
       setCloudSession(null);
       setUser(null);
-      setMockUsers([]);
+      setUsers([]);
       setParcels(DEFAULT_PARCELS);
       setRacks(DEFAULT_RACKS);
     } finally {
@@ -1236,8 +1237,8 @@ export default function ParcelManagementSystem() {
 
   useEffect(() => {
     if (isCloudConfigured) return;
-    try { localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(mockUsers)); } catch (e) {}
-  }, [mockUsers]);
+    try { localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users)); } catch (e) {}
+  }, [users]);
 
   useEffect(() => {
     if (!isCloudConfigured) {
@@ -1306,7 +1307,7 @@ export default function ParcelManagementSystem() {
       return;
     }
 
-    const found = mockUsers.find(u => u.username === username && u.password === password);
+    const found = users.find(u => u.username === username && u.password === password);
     if (found) { const loggedUser = { ...found, lastLogin: new Date().toISOString() }; setUser(loggedUser); setProfileForm({ name: found.name, email: found.email, phone: found.phone || '', address: '' }); setView('dashboard'); }
     else alert('Invalid credentials');
   };
@@ -1326,11 +1327,11 @@ export default function ParcelManagementSystem() {
   const handleSignUp = async (data) => {
     if (isCloudConfigured) {
       try {
-        if (mockUsers.some(u => u.username === data.username || u.email === data.email)) { alert('Account already exists'); return; }
+        if (users.some(u => u.username === data.username || u.email === data.email)) { alert('Account already exists'); return; }
         const { session } = await signUpCloudUser(data);
         if (session) setCloudSession(session);
         const profiles = await listCloudProfiles(session?.access_token);
-        setMockUsers(profiles);
+        setUsers(profiles);
         alert('Account created successfully. Please sign in.');
         setView('login');
       } catch (error) {
@@ -1340,9 +1341,9 @@ export default function ParcelManagementSystem() {
       return;
     }
 
-    if (mockUsers.some(u => u.username === data.username || u.email === data.email)) { alert('Account already exists'); return; }
+    if (users.some(u => u.username === data.username || u.email === data.email)) { alert('Account already exists'); return; }
     const newUser = { ...data, profilePic: '', createdAt: new Date().toISOString() };
-    setMockUsers(prev => [...prev, newUser]);
+    setUsers(prev => [...prev, newUser]);
     alert('Account created successfully');
     setView('login');
   };
@@ -1368,24 +1369,29 @@ export default function ParcelManagementSystem() {
     if (!adminForm.trackingNo || !adminForm.recipient) return;
     const senderValue = adminForm.sender === 'Others' ? adminForm.senderOther : adminForm.sender;
     if (!senderValue) return;
-    const newParcelId = Date.now();
+    if (isCloudConfigured && !cloudSession?.access_token) {
+      alert('Cloud session is not ready. Please log out and sign in again before registering a parcel.');
+      return;
+    }
+    const newParcelId = generateParcelId(parcelsRef.current);
     const parcelWeight = parseFloat((Math.random() * 5 + 0.5).toFixed(1));
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     let assignedRack = null;
+    let nextRacks = racks;
 
     if (adminForm.assignRack && adminForm.selectedRackShelf) {
       const [rackLetter] = adminForm.selectedRackShelf.split('-');
       const shelf = racks.find(r => r.letter === rackLetter)?.shelves.find(s => s.id === adminForm.selectedRackShelf);
       if (shelf?.maintenance) { alert(`Shelf ${adminForm.selectedRackShelf} is under maintenance. Please select another shelf or clear maintenance first.`); return; }
       assignedRack = adminForm.selectedRackShelf;
-      setRacks(prev => prev.map(r => r.letter === rackLetter ? { ...r, shelves: r.shelves.map(s => s.id === adminForm.selectedRackShelf ? { ...s, status: 'occupied', parcelId: newParcelId, weight: parcelWeight } : s) } : r));
+      nextRacks = racks.map(r => r.letter === rackLetter ? { ...r, shelves: r.shelves.map(s => s.id === adminForm.selectedRackShelf ? { ...s, status: 'occupied', parcelId: newParcelId, weight: parcelWeight } : s) } : r);
     } else if (adminForm.assignRack) {
       let assigned = false;
       for (const rack of racks) {
         const emptyShelf = rack.shelves.find(s => s.status === 'empty' && !s.maintenance);
         if (emptyShelf) {
           assignedRack = emptyShelf.id;
-          setRacks(prev => prev.map(r => r.id === rack.id ? { ...r, shelves: r.shelves.map(s => s.id === emptyShelf.id ? { ...s, status: 'occupied', parcelId: newParcelId, weight: parcelWeight } : s) } : r));
+          nextRacks = racks.map(r => r.id === rack.id ? { ...r, shelves: r.shelves.map(s => s.id === emptyShelf.id ? { ...s, status: 'occupied', parcelId: newParcelId, weight: parcelWeight } : s) } : r);
           assigned = true;
           break;
         }
@@ -1398,22 +1404,25 @@ export default function ParcelManagementSystem() {
     delete newParcel.assignRack;
     delete newParcel.selectedRackShelf;
 
-    setParcels(p => [newParcel, ...p]);
-
     if (isCloudConfigured && cloudSession?.access_token) {
       try {
         const savedParcel = await upsertCloudParcel(newParcel, cloudSession.access_token);
-        setParcels(p => p.map(parcel => parcel.id === newParcel.id ? savedParcel : parcel));
+        setRacks(nextRacks);
+        setParcels(p => [savedParcel, ...p.filter(parcel => parcel.id !== savedParcel.id)]);
       } catch (error) {
         console.error('Failed to save parcel to cloud:', error);
-        alert('Parcel was added on this device, but failed to save to Supabase. Please check the parcels table columns and internet connection.');
+        alert(`Parcel was not saved to Supabase: ${error.message || 'Unknown error'}. Please check the parcels table schema and RLS policies.`);
+        return;
       }
+    } else {
+      setRacks(nextRacks);
+      setParcels(p => [newParcel, ...p]);
     }
 
     setAdminForm({ trackingNo: '', sender: '', senderOther: '', recipient: '', status: 'Pending', location: 'Main Post Office', description: '', assignRack: false, selectedRackShelf: '' });
     setScannedTracking('');
 
-    const recipientUser = mockUsers.find(u => u.username === newParcel.recipient);
+    const recipientUser = users.find(u => u.username === newParcel.recipient);
     const phone = recipientUser?.phone || newParcel.recipient;
     let notifyMsg = `Parcel dari ${newParcel.sender} telah sampai. Kod OTP: ${otp}`;
     if (assignedRack) notifyMsg += ` | Rak: ${assignedRack}`;
@@ -1481,7 +1490,7 @@ export default function ParcelManagementSystem() {
         const savedUser = await upsertCloudProfile(cloudUser, cloudSession?.access_token);
         setUser(savedUser);
         setProfileForm({ name: savedUser.name, email: savedUser.email, phone: savedUser.phone || '', address: '' });
-        setMockUsers(prev => prev.map(u => u.username === savedUser.username ? savedUser : u));
+        setUsers(prev => prev.map(u => u.username === savedUser.username ? savedUser : u));
         setActiveModal(null);
         alert('Profile updated successfully!');
       } catch (error) {
@@ -1492,7 +1501,7 @@ export default function ParcelManagementSystem() {
     }
 
     setUser(updatedUser);
-    setMockUsers(prev => prev.map(u => u.username === updatedUser.username ? updatedUser : u));
+    setUsers(prev => prev.map(u => u.username === updatedUser.username ? updatedUser : u));
     setActiveModal(null);
     alert('Profile updated successfully!');
   };
@@ -1515,7 +1524,7 @@ export default function ParcelManagementSystem() {
 
     const updatedUser = { ...user, password: passwordForm.new };
     setUser(updatedUser);
-    setMockUsers(prev => prev.map(u => u.username === updatedUser.username ? updatedUser : u));
+    setUsers(prev => prev.map(u => u.username === updatedUser.username ? updatedUser : u));
     setPasswordForm({ current: '', new: '', confirm: '' });
     setActiveModal(null);
     alert('Password updated successfully!');
@@ -1527,7 +1536,7 @@ export default function ParcelManagementSystem() {
       try {
         const savedUser = await upsertCloudProfile(updatedUser, cloudSession?.access_token);
         setUser(savedUser);
-        setMockUsers(prev => prev.map(u => u.username === savedUser.username ? savedUser : u));
+        setUsers(prev => prev.map(u => u.username === savedUser.username ? savedUser : u));
       } catch (error) {
         console.error('Cloud profile picture update failed:', error);
         alert('Unable to update profile picture.');
@@ -1536,7 +1545,7 @@ export default function ParcelManagementSystem() {
     }
 
     setUser(updatedUser);
-    setMockUsers(prev => prev.map(u => u.username === updatedUser.username ? updatedUser : u));
+    setUsers(prev => prev.map(u => u.username === updatedUser.username ? updatedUser : u));
   };
 
   // ===== UNIVERSAL SCAN HANDLER - Works with all scan modes =====
@@ -1728,7 +1737,7 @@ export default function ParcelManagementSystem() {
             )}
 
             {view === 'admin' && isAdmin && (
-              <AdminView parcels={parcels} form={adminForm} setForm={setAdminForm} onAdd={handleAddParcel} onRequestCollect={handleRequestCollect} onDelete={handleDeleteParcel} onOpenScanner={openScannerForTracking} scannedTracking={scannedTracking} racks={racks} theme={themeObj} />
+              <AdminView parcels={parcels} users={users} form={adminForm} setForm={setAdminForm} onAdd={handleAddParcel} onRequestCollect={handleRequestCollect} onDelete={handleDeleteParcel} onOpenScanner={openScannerForTracking} scannedTracking={scannedTracking} racks={racks} theme={themeObj} />
             )}
 
             {totalPages > 1 && (view === 'dashboard' || view === 'myparcels' || view === 'admin') && (
@@ -2019,7 +2028,7 @@ function LoginForm({ onLogin, theme }) {
         <input type="password" value={p} onChange={e => setP(e.target.value)} style={{ ...styles.input, boxSizing: 'border-box' }} placeholder="••••••••" required />
       </div>
       <button type="submit" style={styles.btnPrimary}>Access Dashboard</button>
-      <p style={{ fontSize: '11px', color: theme.textMuted, textAlign: 'center', margin: 0 }}>Demo: student1/staff1/admin — Password: 123456</p>
+      <p style={{ fontSize: '11px', color: theme.textMuted, textAlign: 'center', margin: 0 }}>Sign in with your registered IPGKPP parcel account.</p>
     </form>
   );
 }
@@ -2282,12 +2291,13 @@ function MyParcelsView({ parcels, user, theme }) {
   );
 }
 
-function AdminView({ parcels, form, setForm, onAdd, onRequestCollect, onDelete, onOpenScanner, scannedTracking, racks, theme }) {
+function AdminView({ parcels, users = [], form, setForm, onAdd, onRequestCollect, onDelete, onOpenScanner, scannedTracking, racks, theme }) {
   const styles = createStyles(theme);
   const up = (k) => (e) => { const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value; setForm(prev => ({ ...prev, [k]: value })); };
   const isOthers = form.sender === 'Others';
   const emptyShelves = racks.flatMap(r => r.shelves.filter(s => s.status === 'empty' && !s.maintenance).map(s => ({ ...s, rackLetter: r.letter })));
   const maintenanceShelves = racks.flatMap(r => r.shelves.filter(s => s.maintenance).map(s => ({ ...s, rackLetter: r.letter })));
+  const recipientOptions = users.filter(u => u.role !== 'admin');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -2311,7 +2321,16 @@ function AdminView({ parcels, form, setForm, onAdd, onRequestCollect, onDelete, 
             </select>
             {isOthers && <input value={form.senderOther} onChange={up('senderOther')} placeholder="Enter courier name" style={styles.input} required={isOthers} />}
           </div>
-          <input value={form.recipient} onChange={up('recipient')} placeholder="Recipient Username" style={styles.input} required />
+          {recipientOptions.length > 0 ? (
+            <select value={form.recipient} onChange={up('recipient')} style={{ ...styles.input, backgroundColor: styles.inputBg }} required>
+              <option value="" disabled>Select Recipient</option>
+              {recipientOptions.map(u => (
+                <option key={u.username} value={u.username}>{u.name || u.username} ({u.username})</option>
+              ))}
+            </select>
+          ) : (
+            <input value={form.recipient} onChange={up('recipient')} placeholder="Recipient Username" style={styles.input} required />
+          )}
           <select value={form.status} onChange={up('status')} style={{ ...styles.input, backgroundColor: styles.inputBg }}>
             <option>Pending</option><option>Arrived</option><option>Overdue</option>
           </select>
@@ -2381,3 +2400,4 @@ function AdminView({ parcels, form, setForm, onAdd, onRequestCollect, onDelete, 
     </div>
   );
 }
+

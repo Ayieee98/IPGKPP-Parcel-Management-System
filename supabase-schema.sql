@@ -15,7 +15,7 @@ create table if not exists public.users (
 );
 
 create table if not exists public.parcels (
-  id serial primary key,
+  id bigint primary key,
   trackingNo text,
   sender text,
   recipient text,
@@ -28,6 +28,9 @@ create table if not exists public.parcels (
   weight text,
   created_at timestamptz not null default now()
 );
+
+-- Run this once if your existing parcels table was created with serial/integer id.
+alter table public.parcels alter column id type bigint;
 
 create table if not exists public.racks (
   id integer primary key,
