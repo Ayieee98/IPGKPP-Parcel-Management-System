@@ -1737,7 +1737,7 @@ export default function ParcelManagementSystem() {
             )}
 
             {view === 'admin' && isAdmin && (
-              <AdminView parcels={parcels} users={users} form={adminForm} setForm={setAdminForm} onAdd={handleAddParcel} onRequestCollect={handleRequestCollect} onDelete={handleDeleteParcel} onOpenScanner={openScannerForTracking} scannedTracking={scannedTracking} racks={racks} theme={themeObj} />
+              <AdminView parcels={parcels} users={users} form={adminForm} setForm={setAdminForm} onAdd={handleAddParcel} onRequestCollect={handleRequestCollect} onDelete={handleDeleteParcel} onUpdateStatus={updateStatus} onOpenScanner={openScannerForTracking} scannedTracking={scannedTracking} racks={racks} theme={themeObj} />
             )}
 
             {totalPages > 1 && (view === 'dashboard' || view === 'myparcels' || view === 'admin') && (
@@ -2291,13 +2291,17 @@ function MyParcelsView({ parcels, user, theme }) {
   );
 }
 
-function AdminView({ parcels, users = [], form, setForm, onAdd, onRequestCollect, onDelete, onOpenScanner, scannedTracking, racks, theme }) {
+function AdminView({ parcels, users = [], form, setForm, onAdd, onRequestCollect, onDelete, onUpdateStatus, onOpenScanner, scannedTracking, racks, theme }) {
   const styles = createStyles(theme);
   const up = (k) => (e) => { const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value; setForm(prev => ({ ...prev, [k]: value })); };
   const isOthers = form.sender === 'Others';
   const emptyShelves = racks.flatMap(r => r.shelves.filter(s => s.status === 'empty' && !s.maintenance).map(s => ({ ...s, rackLetter: r.letter })));
   const maintenanceShelves = racks.flatMap(r => r.shelves.filter(s => s.maintenance).map(s => ({ ...s, rackLetter: r.letter })));
-  const recipientOptions = users.filter(u => u.role !== 'admin');
+  const statusOptions = ['Pending', 'Arrived', 'Overdue', 'Collected'];
+  const roleRank = { student: 1, staff: 2 };
+  const recipientOptions = users
+    .filter(u => u.role === 'student' || u.role === 'staff')
+    .sort((a, b) => (roleRank[a.role] || 99) - (roleRank[b.role] || 99) || (a.name || a.username || '').localeCompare(b.name || b.username || ''));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -2321,18 +2325,23 @@ function AdminView({ parcels, users = [], form, setForm, onAdd, onRequestCollect
             </select>
             {isOthers && <input value={form.senderOther} onChange={up('senderOther')} placeholder="Enter courier name" style={styles.input} required={isOthers} />}
           </div>
-          {recipientOptions.length > 0 ? (
-            <select value={form.recipient} onChange={up('recipient')} style={{ ...styles.input, backgroundColor: styles.inputBg }} required>
-              <option value="" disabled>Select Recipient</option>
+          <div>
+            <input
+              value={form.recipient}
+              onChange={up('recipient')}
+              list="recipient-options"
+              placeholder="Recipient username"
+              style={styles.input}
+              required
+            />
+            <datalist id="recipient-options">
               {recipientOptions.map(u => (
-                <option key={u.username} value={u.username}>{u.name || u.username} ({u.username})</option>
+                <option key={u.username} value={u.username} label={`${u.name || u.username} - ${u.role === 'staff' ? 'Staff' : 'Student'}`} />
               ))}
-            </select>
-          ) : (
-            <input value={form.recipient} onChange={up('recipient')} placeholder="Recipient Username" style={styles.input} required />
-          )}
+            </datalist>
+          </div>
           <select value={form.status} onChange={up('status')} style={{ ...styles.input, backgroundColor: styles.inputBg }}>
-            <option>Pending</option><option>Arrived</option><option>Overdue</option>
+            {statusOptions.filter(status => status !== 'Collected').map(status => <option key={status}>{status}</option>)}
           </select>
           <input value={form.location} onChange={up('location')} placeholder="Storage Location" style={{ ...styles.input, gridColumn: '1 / -1' }} required />
           <input value={form.description} onChange={up('description')} placeholder="Package Description (Visible to User)" style={{ ...styles.input, gridColumn: '1 / -1' }} />
@@ -2384,7 +2393,15 @@ function AdminView({ parcels, users = [], form, setForm, onAdd, onRequestCollect
                   <td style={styles.td}>{p.recipient}</td>
                   <td style={styles.td}>{p.rackLocation ? <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#4f46e5' }}>{p.rackLocation}</span> : <span style={{ color: theme.textMuted }}>—</span>}</td>
                   <td style={{ ...styles.td, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description || '-'}</td>
-                  <td style={styles.td}><span style={styles.badge(p.status)}>{p.status}</span></td>
+                  <td style={styles.td}>
+                    <select
+                      value={p.status || 'Pending'}
+                      onChange={(e) => onUpdateStatus(p.id, e.target.value)}
+                      style={{ ...styles.input, minWidth: '130px', padding: '6px 10px', backgroundColor: styles.inputBg }}
+                    >
+                      {statusOptions.map(status => <option key={status}>{status}</option>)}
+                    </select>
+                  </td>
                   <td style={styles.td}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       {p.status === 'Arrived' && (<button onClick={() => onRequestCollect(p)} style={{ padding: '6px 12px', backgroundColor: '#4f46e5', color: '#ffffff', fontSize: '12px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><Icons.Lock width={14} height={14} />Verify</button>)}

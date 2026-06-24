@@ -30,20 +30,6 @@ const toDbParcel = (parcel) => ({
   weight: parcel.weight ?? '',
 })
 
-const toLegacyDbParcel = (parcel) => ({
-  id: parcel.id,
-  trackingno: parcel.trackingNo ?? parcel.trackingno ?? '',
-  sender: parcel.sender ?? '',
-  recipient: parcel.recipient ?? '',
-  status: parcel.status ?? 'Pending',
-  datereceived: parcel.dateReceived ?? parcel.datereceived ?? null,
-  location: parcel.location ?? '',
-  description: parcel.description ?? '',
-  otp: parcel.otp ?? '',
-  racklocation: parcel.rackLocation ?? parcel.racklocation ?? '',
-  weight: parcel.weight ?? '',
-})
-
 // ===== SESSION MANAGEMENT =====
 export const getSavedCloudSession = () => {
   try {
@@ -257,20 +243,10 @@ export const saveCloudState = async (key, value, token) => {
 
 export const upsertCloudParcels = async (parcels, token) => {
   const rows = parcels.map(toDbParcel)
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from('parcels')
     .upsert(rows, { onConflict: 'id' })
     .select()
-
-  if (isMissingSchemaError(error)) {
-    const fallbackRows = parcels.map(toLegacyDbParcel)
-    const fallback = await supabase
-      .from('parcels')
-      .upsert(fallbackRows, { onConflict: 'id' })
-      .select()
-    data = fallback.data
-    error = fallback.error
-  }
 
   if (error) throw error
   return (data || []).map(toAppParcel)
