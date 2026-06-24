@@ -7,15 +7,16 @@ This app can sync users, parcels, racks, and login sessions across devices with 
 
 1. Create a Supabase project.
 2. Open Supabase SQL Editor and run `supabase-schema.sql`.
-3. Copy `.env.example` to `.env`.
-4. Fill in:
+3. Run `supabase-realtime.sql` to enable live updates across devices.
+4. Copy `.env.example` to `.env`.
+5. Fill in:
 
 ```env
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-5. Restart the Vite dev server.
+6. Restart the Vite dev server.
 
 When these environment variables are present, the app uses Supabase. Without them, it falls back to the original local browser storage mode.
 

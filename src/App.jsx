@@ -10,6 +10,7 @@ import {
   saveCloudState,
   signInCloudUser,
   signUpCloudUser,
+  subscribeCloudChanges,
   updateCloudPassword,
   upsertCloudProfile,
 } from './services/cloudStore';
@@ -1200,6 +1201,14 @@ export default function ParcelManagementSystem() {
       loadCloudData(cloudSession || getSavedCloudSession(), true);
     }, 60000);
     return () => clearInterval(cloudPollRef.current);
+  }, [cloudReady, cloudSession, cloudSchemaMissing, loadCloudData]);
+
+  useEffect(() => {
+    if (!isCloudConfigured || !cloudReady || cloudSchemaMissing) return;
+    const unsubscribe = subscribeCloudChanges(() => {
+      loadCloudData(cloudSession || getSavedCloudSession(), true);
+    });
+    return unsubscribe;
   }, [cloudReady, cloudSession, cloudSchemaMissing, loadCloudData]);
 
   useEffect(() => {

@@ -222,3 +222,16 @@ export const saveCloudState = async (key, value, token) => {
     throw error
   }
 }
+
+export const subscribeCloudChanges = (onChange) => {
+  const channel = supabase
+    .channel('ipgkpp-parcel-system-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'parcels' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'racks' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, onChange)
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
