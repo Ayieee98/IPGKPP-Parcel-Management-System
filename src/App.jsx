@@ -12,6 +12,8 @@ import {
   signUpCloudUser,
   subscribeCloudChanges,
   updateCloudPassword,
+  deleteCloudParcel,
+  upsertCloudParcel,
   upsertCloudProfile,
 } from './services/cloudStore';
 
@@ -1240,11 +1242,8 @@ export default function ParcelManagementSystem() {
   useEffect(() => {
     if (!isCloudConfigured) {
       try { localStorage.setItem(STORAGE_KEYS.PARCELS, JSON.stringify(parcels)); } catch (e) {}
-      return;
     }
-    if (cloudHydratingRef.current) return;
-    if (cloudReady && cloudSession?.access_token) saveCloudState('parcels', parcels, cloudSession.access_token).catch(error => console.error('Failed to save parcels:', error));
-  }, [parcels, cloudReady, cloudSession?.access_token]);
+  }, [parcels]);
 
   useEffect(() => {
     if (!isCloudConfigured) {
@@ -1364,7 +1363,7 @@ export default function ParcelManagementSystem() {
     showNotification(`${target} has been ${isNowMaintenance ? 'set to MAINTENANCE' : 'marked as AVAILABLE'}.`);
   };
 
-  const handleAddParcel = (e) => {
+  const handleAddParcel = async (e) => {
     e.preventDefault();
     if (!adminForm.trackingNo || !adminForm.recipient) return;
     const senderValue = adminForm.sender === 'Others' ? adminForm.senderOther : adminForm.sender;
@@ -1400,6 +1399,17 @@ export default function ParcelManagementSystem() {
     delete newParcel.selectedRackShelf;
 
     setParcels(p => [newParcel, ...p]);
+
+    if (isCloudConfigured && cloudSession?.access_token) {
+      try {
+        const savedParcel = await upsertCloudParcel(newParcel, cloudSession.access_token);
+        setParcels(p => p.map(parcel => parcel.id === newParcel.id ? savedParcel : parcel));
+      } catch (error) {
+        console.error('Failed to save parcel to cloud:', error);
+        alert('Parcel was added on this device, but failed to save to Supabase. Please check the parcels table columns and internet connection.');
+      }
+    }
+
     setAdminForm({ trackingNo: '', sender: '', senderOther: '', recipient: '', status: 'Pending', location: 'Main Post Office', description: '', assignRack: false, selectedRackShelf: '' });
     setScannedTracking('');
 
@@ -1410,9 +1420,19 @@ export default function ParcelManagementSystem() {
     showNotification(`API WhatsApp/Telegram: "${notifyMsg}" dihantar kepada ${phone}.`);
   };
 
-  const handleDeleteParcel = (id) => {
+  const handleDeleteParcel = async (id) => {
     const parcel = parcels.find(p => p.id === id);
     if (window.confirm('Are you sure you want to delete this parcel record?')) {
+      if (isCloudConfigured && cloudSession?.access_token) {
+        try {
+          await deleteCloudParcel(id, cloudSession.access_token);
+        } catch (error) {
+          console.error('Failed to delete parcel from cloud:', error);
+          alert('Unable to delete parcel from Supabase. Please try again.');
+          return;
+        }
+      }
+
       if (parcel?.rackLocation) {
         const [rackLetter] = parcel.rackLocation.split('-');
         setRacks(prev => prev.map(r => r.letter === rackLetter ? { ...r, shelves: r.shelves.map(s => s.id === parcel.rackLocation ? { ...s, status: 'empty', parcelId: null, weight: 0 } : s) } : r));
@@ -1421,9 +1441,18 @@ export default function ParcelManagementSystem() {
     }
   };
 
-  const updateStatus = (id, status) => {
+  const updateStatus = async (id, status) => {
     const parcel = parcels.find(p => p.id === id);
+    const updatedParcel = parcel ? { ...parcel, status } : null;
     setParcels(p => p.map(x => x.id === id ? { ...x, status } : x));
+    if (isCloudConfigured && cloudSession?.access_token && updatedParcel) {
+      try {
+        await upsertCloudParcel(updatedParcel, cloudSession.access_token);
+      } catch (error) {
+        console.error('Failed to update parcel status in cloud:', error);
+        alert('Unable to update parcel status in Supabase. Please try again.');
+      }
+    }
     if (status === 'Collected' && parcel) {
       if (parcel.rackLocation) {
         const [rackLetter] = parcel.rackLocation.split('-');

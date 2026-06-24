@@ -5,6 +5,44 @@ const isMissingSchemaError = (error) => {
   return error?.code === 'PGRST205' || error?.code === '42703'
 }
 
+const toAppParcel = (parcel) => {
+  if (!parcel) return parcel
+  return {
+    ...parcel,
+    trackingNo: parcel.trackingNo ?? parcel.trackingno ?? parcel.tracking_no ?? '',
+    dateReceived: parcel.dateReceived ?? parcel.datereceived ?? parcel.date_received ?? '',
+    rackLocation: parcel.rackLocation ?? parcel.racklocation ?? parcel.rack_location ?? '',
+  }
+}
+
+const toDbParcel = (parcel) => ({
+  id: parcel.id,
+  trackingno: parcel.trackingNo ?? parcel.trackingno ?? '',
+  sender: parcel.sender ?? '',
+  recipient: parcel.recipient ?? '',
+  status: parcel.status ?? 'Pending',
+  datereceived: parcel.dateReceived ?? parcel.datereceived ?? null,
+  location: parcel.location ?? '',
+  description: parcel.description ?? '',
+  otp: parcel.otp ?? '',
+  racklocation: parcel.rackLocation ?? parcel.racklocation ?? '',
+  weight: parcel.weight ?? '',
+})
+
+const toCamelDbParcel = (parcel) => ({
+  id: parcel.id,
+  trackingNo: parcel.trackingNo ?? parcel.trackingno ?? '',
+  sender: parcel.sender ?? '',
+  recipient: parcel.recipient ?? '',
+  status: parcel.status ?? 'Pending',
+  dateReceived: parcel.dateReceived ?? parcel.datereceived ?? null,
+  location: parcel.location ?? '',
+  description: parcel.description ?? '',
+  otp: parcel.otp ?? '',
+  rackLocation: parcel.rackLocation ?? parcel.racklocation ?? '',
+  weight: parcel.weight ?? '',
+})
+
 // ===== SESSION MANAGEMENT =====
 export const getSavedCloudSession = () => {
   try {
@@ -170,7 +208,7 @@ export const getCloudState = async (key, defaultValue, token) => {
         if (isMissingSchemaError(error)) return defaultValue
         throw error
       }
-      return data || []
+      return (data || []).map(toAppParcel)
     }
 
     if (key === 'racks') {
@@ -198,15 +236,8 @@ export const getCloudState = async (key, defaultValue, token) => {
 export const saveCloudState = async (key, value, token) => {
   try {
     if (key === 'parcels') {
-      // Delete semua parcels lama, insert yang baru
-      await supabase.from('parcels').delete().neq('id', 0)
-      
       if (value.length > 0) {
-        const { error } = await supabase
-          .from('parcels')
-          .insert(value)
-        
-        if (error) throw error
+        await upsertCloudParcels(value, token)
       }
     }
 
@@ -221,6 +252,41 @@ export const saveCloudState = async (key, value, token) => {
     console.error(`Error saving ${key}:`, error)
     throw error
   }
+}
+
+export const upsertCloudParcels = async (parcels, token) => {
+  const rows = parcels.map(toDbParcel)
+  let { data, error } = await supabase
+    .from('parcels')
+    .upsert(rows, { onConflict: 'id' })
+    .select()
+
+  if (isMissingSchemaError(error)) {
+    const fallbackRows = parcels.map(toCamelDbParcel)
+    const fallback = await supabase
+      .from('parcels')
+      .upsert(fallbackRows, { onConflict: 'id' })
+      .select()
+    data = fallback.data
+    error = fallback.error
+  }
+
+  if (error) throw error
+  return (data || []).map(toAppParcel)
+}
+
+export const upsertCloudParcel = async (parcel, token) => {
+  const rows = await upsertCloudParcels([parcel], token)
+  return rows[0] || parcel
+}
+
+export const deleteCloudParcel = async (id, token) => {
+  const { error } = await supabase
+    .from('parcels')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
 }
 
 export const subscribeCloudChanges = (onChange) => {
