@@ -2126,7 +2126,7 @@ export default function ParcelManagementSystem() {
             <DetailRow label="Email" value={user.email} theme={themeObj} />
             <DetailRow label="Phone" value={user.phone || 'Not set'} theme={themeObj} />
             <DetailRow label="Role" value={user.role} theme={themeObj} />
-            <DetailRow label="ID No" value={user.idNo} theme={themeObj} />
+            <DetailRow label={user.role === 'student' ? 'Matric Number' : 'ID Number'} value={user.idNo} theme={themeObj} />
           </div>
         </Modal>
       )}
@@ -2442,7 +2442,7 @@ function SignUpForm({ onSignUp, theme }) {
       </>}
       {step === 2 && <>
         <input name="name" value={form.name} onChange={handleChange} style={styles.input} placeholder="Full Name" required />
-        <input name="idNo" value={form.idNo} onChange={handleChange} style={styles.input} placeholder="Matric / Staff ID" required />
+        <input name="idNo" value={form.idNo} onChange={handleChange} style={styles.input} placeholder={form.role === 'student' ? "Matric Number" : "Staff ID Number"} required />
         <input name="phone" value={form.phone} onChange={handleChange} type="tel" style={styles.input} placeholder="Phone Number" required />
         <div style={{ display: 'flex', gap: '12px' }}>
           <button type="button" onClick={prev} style={{ ...styles.btnPrimary, backgroundColor: styles.btnSecondaryBg, color: styles.btnSecondaryText }}>Back</button>
@@ -2453,7 +2453,6 @@ function SignUpForm({ onSignUp, theme }) {
         <select name="role" value={form.role} onChange={handleChange} style={{ ...styles.input, backgroundColor: styles.inputBg }}>
           <option value="student">Student</option>
           <option value="staff">Staff</option>
-          <option value="admin">Administrator</option>
         </select>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button type="button" onClick={prev} style={{ ...styles.btnPrimary, backgroundColor: styles.btnSecondaryBg, color: styles.btnSecondaryText }}>Back</button>
@@ -2697,7 +2696,7 @@ function UserManagementView({ users = [], userForm, setUserForm, onSaveUser, onE
           <input value={userForm.name} onChange={upUser('name')} placeholder="Full Name" style={styles.input} required />
           <input value={userForm.username} onChange={upUser('username')} placeholder="Username" style={styles.input} required />
           <input value={userForm.email} onChange={upUser('email')} type="email" placeholder="Email Address" style={styles.input} required />
-          <input value={userForm.idNo} onChange={upUser('idNo')} placeholder="Matric / Staff ID" style={styles.input} required />
+          <input value={userForm.idNo} onChange={upUser('idNo')} placeholder={userForm.role === 'student' ? "Matric Number" : "Staff ID Number"} style={styles.input} required />
           <input value={userForm.phone} onChange={upUser('phone')} type="tel" placeholder="Phone Number" style={styles.input} required />
           <input value={userForm.password} onChange={upUser('password')} type="password" placeholder={userForm.id ? 'New password (optional)' : 'Password'} style={styles.input} required={!userForm.id} />
           <select value={userForm.role} onChange={upUser('role')} style={{ ...styles.input, backgroundColor: styles.inputBg }}>
@@ -2718,7 +2717,7 @@ function UserManagementView({ users = [], userForm, setUserForm, onSaveUser, onE
                 <th style={styles.th}>Name</th>
                 <th style={styles.th}>Username</th>
                 <th style={styles.th}>Role</th>
-                <th style={styles.th}>ID</th>
+                <th style={styles.th}>Matric / ID</th>
                 <th style={styles.th}>Phone</th>
                 <th style={styles.th}>Actions</th>
               </tr>
