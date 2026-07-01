@@ -19,7 +19,7 @@ import {
   upsertCloudProfile,
 } from './services/cloudStore';
 
-const IPGKPP_LOGO = 'https://upload.wikimedia.org/wikipedia/commons/e/e0/Logo_IPG.png';
+const IPGKPP_LOGO = '/logo.png';
 const IPGKPP_BG = 'https://image.qwenlm.ai/public_source/a5365ccb-778a-4d10-aedb-64b519a3dff3/1ee67feb7-707c-4c46-8395-a946662c0e1d.png';
 
 const Icons = {
