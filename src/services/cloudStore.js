@@ -285,6 +285,21 @@ export const getCloudState = async (key, defaultValue, token) => {
       return data?.rack_data || defaultValue
     }
 
+    if (key === 'smart_racks') {
+      const { data, error } = await supabase
+        .from('smart_racks')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (error) {
+        if (isMissingSchemaError(error)) return null
+        throw error
+      }
+      return data
+    }
+
     return defaultValue
   } catch (error) {
       if (isMissingSchemaError(error)) return defaultValue
@@ -345,6 +360,11 @@ export const subscribeCloudChanges = (onChange) => {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'parcels' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'racks' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'smart_racks' }, (payload) => {
+      // Trigger update specifically for smart_racks if needed,
+      // but passing it to the general onChange works too as it triggers loadCloudData
+      onChange(payload);
+    })
     .subscribe()
 
   return () => {

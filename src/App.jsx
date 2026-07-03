@@ -1167,7 +1167,7 @@ function RackSensorView({ rackIoTData, theme }) {
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: rackIoTData ? '#4ade80' : '#f87171', boxShadow: `0 0 10px ${rackIoTData ? '#4ade80' : '#f87171'}` }}></div>
-          <span style={{ fontSize: '14px', fontWeight: 600 }}>{rackIoTData ? `Device Online (${rackIoTData.bin_id})` : 'Waiting for data...'}</span>
+          <span style={{ fontSize: '14px', fontWeight: 600 }}>{rackIoTData ? `Device Online (${rackIoTData.rack_id || 'RACK-A-1'})` : 'Waiting for data...'}</span>
         </div>
       </div>
 
@@ -1313,17 +1313,20 @@ export default function ParcelManagementSystem() {
         listCloudProfiles(token),
         getCloudState('parcels', DEFAULT_PARCELS, token),
         getCloudState('racks', DEFAULT_RACKS, token),
+        getCloudState('smart_racks', null, token),
       ]);
 
       const profiles = results[0].status === 'fulfilled' ? results[0].value : [];
       const cloudParcels = results[1].status === 'fulfilled' ? results[1].value : DEFAULT_PARCELS;
       const cloudRacks = results[2].status === 'fulfilled' ? results[2].value : DEFAULT_RACKS;
+      const iotData = results[3].status === 'fulfilled' ? results[3].value : null;
 
       cloudHydratingRef.current = true;
       setCloudSession(activeSession || null);
       setUsers(profiles);
       setParcels(Array.isArray(cloudParcels) ? cloudParcels : DEFAULT_PARCELS);
       setRacks(normalizeRacks(cloudRacks));
+      if (iotData) setRackIoTData(iotData);
 
       if (activeSession?.user?.email && !silent) {
         const profile = await getCloudProfileByEmail(activeSession.user.email, token);
@@ -1372,32 +1375,6 @@ export default function ParcelManagementSystem() {
     });
     return unsubscribe;
   }, [cloudReady, cloudSession, cloudSchemaMissing, loadCloudData]);
-
-  useEffect(() => {
-    const fetchRackIoTData = async () => {
-      try {
-        const SUPABASE_URL = 'https://xlsosjhrqyjroipowwdq.supabase.co/rest/v1/smart_racks?select=*&order=updated_at.desc&limit=1';
-        const SUPABASE_KEY = 'sb_publishable_ewTZ0PemwqQBRW_U8HK7LQ_ftuKZafB';
-
-        const response = await fetch(SUPABASE_URL, {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        });
-        const data = await response.json();
-        if (data && data.length > 0) {
-          setRackIoTData(data[0]);
-        }
-      } catch (error) {
-        console.error("Error fetching rack IoT data:", error);
-      }
-    };
-
-    fetchRackIoTData();
-    const interval = setInterval(fetchRackIoTData, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const checkOverdue = () => {
