@@ -1144,12 +1144,12 @@ function RackSensorView({ rackIoTData, theme }) {
   const styles = createStyles(theme);
 
   // Memadankan dengan kunci daripada kod ESP32 user
-  const fill = rackIoTData?.fill_percent || 0;
-  const weight = rackIoTData?.weight_kg || 0;
+  const fill = rackIoTData?.fill_level || 0;
+  const weight = rackIoTData?.weight || 0;
   const gas = rackIoTData?.gas_value || 0;
   const status = rackIoTData?.status || 'Normal';
 
-  const isFull = status === 'Penuh' || fill >= 80;
+  const isFull = rackIoTData?.is_full ?? (status === 'Penuh' || fill >= 80);
   const isOverweight = status === 'Berat Berlebihan' || weight >= 2.0;
   const hasBadOdor = status === 'Bau Busuk' || gas >= 1000;
 
