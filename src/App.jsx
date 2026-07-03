@@ -1148,6 +1148,7 @@ function RackSensorView({ rackIoTData, theme }) {
   const weight = rackIoTData?.weight || 0;
   const gas = rackIoTData?.gas_value || 0;
   const status = rackIoTData?.status || 'Normal';
+  const lastUpdate = rackIoTData?.updated_at ? new Date(rackIoTData.updated_at).toLocaleTimeString() : 'Never';
 
   const isFull = rackIoTData?.is_full ?? (status === 'Penuh' || fill >= 80);
   const isOverweight = status === 'Berat Berlebihan' || weight >= 2.0;
@@ -1165,9 +1166,14 @@ function RackSensorView({ rackIoTData, theme }) {
             <p style={{ margin: '4px 0 0 0', opacity: 0.9, fontSize: '14px' }}>Real-time environmental & weight sensors — Rack {rackIoTData?.rack_id || '-'}</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: rackIoTData ? '#4ade80' : '#f87171', boxShadow: `0 0 10px ${rackIoTData ? '#4ade80' : '#f87171'}` }}></div>
-          <span style={{ fontSize: '14px', fontWeight: 600 }}>{rackIoTData ? `Device Online (${rackIoTData.rack_id || 'RACK-A-1'})` : 'Waiting for data...'}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: rackIoTData ? '#4ade80' : '#f87171', boxShadow: `0 0 10px ${rackIoTData ? '#4ade80' : '#f87171'}` }}></div>
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>{rackIoTData ? `Device Online (${rackIoTData.rack_id || 'RACK-A-1'})` : 'Waiting for data...'}</span>
+          </div>
+          <div style={{ fontSize: '12px', opacity: 0.8, backgroundColor: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '6px' }}>
+            Last Sync: {lastUpdate}
+          </div>
         </div>
       </div>
 
@@ -1379,11 +1385,16 @@ export default function ParcelManagementSystem() {
   // Frequent polling for IoT data as a fallback for Realtime
   useEffect(() => {
     if (!isCloudConfigured || !cloudReady) return;
+
+    // Use faster polling (2s) when viewing the sensors page, slower (10s) otherwise
+    const intervalTime = view === 'racksensors' ? 2000 : 10000;
+
     const iotPoll = setInterval(() => {
       loadCloudData(cloudSession || getSavedCloudSession(), true);
-    }, 5000); // 5 seconds poll
+    }, intervalTime);
+
     return () => clearInterval(iotPoll);
-  }, [cloudReady, cloudSession, loadCloudData]);
+  }, [cloudReady, cloudSession, loadCloudData, view]);
 
   useEffect(() => {
     const checkOverdue = () => {

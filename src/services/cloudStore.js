@@ -289,12 +289,13 @@ export const getCloudState = async (key, defaultValue, token) => {
       const { data, error } = await supabase
         .from('smart_racks')
         .select('*')
+        .eq('rack_id', 'RACK-A-SHELF-1') // Fetch specifically the rack ID used by ESP32
         .order('updated_at', { ascending: false })
         .limit(1)
 
       if (error) {
         if (isMissingSchemaError(error)) return null
-        console.warn('Error fetching smart_racks:', error)
+        console.error('Supabase error fetching smart_racks:', error)
         return null
       }
       return data && data.length > 0 ? data[0] : null
