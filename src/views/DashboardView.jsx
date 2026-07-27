@@ -1,16 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icons } from '../components/Icons';
 import { createStyles } from '../utils/theme';
-import emailjs from '@emailjs/browser';
 
-export function DashboardView({ parcels, trackInput, setTrackInput, onTrack, foundParcel, onRequestCollect, stats, isAdmin, user, racks, onGoToRack, onGoToMaintenance, theme }) {
+export function DashboardView({ parcels, users = [], trackInput, setTrackInput, onTrack, foundParcel, onRequestCollect, stats, isAdmin, user, racks, onGoToRack, onGoToMaintenance, theme }) {
   const [activeTab, setActiveTab] = useState('student');
+  const [sortFilter, setSortFilter] = useState('newest');
+
+  // NEW: Internal Dashboard Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+
   const cardGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' };
   const styles = createStyles(theme);
 
-  const filteredParcels = isAdmin
-    ? parcels.filter(p => (p.recipientRole === activeTab || (!p.recipientRole && activeTab === 'student')))
-    : parcels;
+  // NEW: Reset to page 1 instantly if the admin changes the tab or filter
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, sortFilter]);
+
+  const getParcelRole = (parcel) => {
+    if (parcel.recipientRole) return parcel.recipientRole;
+    // Fallback: Look up the user in the database
+    const foundUser = users.find(u => u.username === parcel.recipient);
+    return foundUser?.role || 'student';
+  };
+
+  const processedParcels = (isAdmin
+    ? parcels.filter(p => {
+      const role = getParcelRole(p);
+      return activeTab === 'staff' ? role === 'staff' : role !== 'staff';
+    })
+    : parcels)
+    .filter(p => {
+      if (sortFilter === 'status_arrived') return p.status === 'Arrived';
+      if (sortFilter === 'status_pending') return p.status === 'Pending';
+      if (sortFilter === 'status_collected') return p.status === 'Collected';
+      if (sortFilter === 'status_overdue') return p.status === 'Overdue';
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortFilter === 'name_asc') return (a.recipientName || a.recipient || '').localeCompare(b.recipientName || b.recipient || '');
+      if (sortFilter === 'name_desc') return (b.recipientName || b.recipient || '').localeCompare(a.recipientName || a.recipient || '');
+      if (sortFilter === 'oldest') return new Date(a.dateReceived) - new Date(b.dateReceived);
+      return new Date(b.dateReceived) - new Date(a.dateReceived);
+    });
+
+  // ==========================================
+  // INTERNAL PAGINATION (Executes AFTER filtering)
+  // ==========================================
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(processedParcels.length / itemsPerPage);
+  const paginatedParcels = processedParcels.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -58,8 +97,7 @@ export function DashboardView({ parcels, trackInput, setTrackInput, onTrack, fou
             </div>
           )}
 
-          {/* VERIFY BUTTON: Now shows for 'Arrived' and 'Overdue', hides instantly when 'Collected' */}
-          {foundParcel.status !== 'Collected' && (
+          {foundParcel.status !== 'Collected' && isAdmin && (
             <div style={{ padding: '12px 24px', backgroundColor: styles.sectionBg, borderTop: `1px solid ${styles.sectionBorder}` }}>
               <button
                 onClick={() => onRequestCollect(foundParcel)}
@@ -115,13 +153,33 @@ export function DashboardView({ parcels, trackInput, setTrackInput, onTrack, fou
       <div style={styles.card}>
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <h3 style={{ fontWeight: 600, color: theme.text, margin: 0, fontSize: '16px' }}>{isAdmin ? 'All System Parcels' : 'Active Parcels'}</h3>
+
           {isAdmin && (
-            <div style={{ display: 'flex', gap: '4px', backgroundColor: styles.sectionBg, padding: '4px', borderRadius: '8px' }}>
-              <button type="button" onClick={() => setActiveTab('student')} style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, backgroundColor: activeTab === 'student' ? '#4f46e5' : 'transparent', color: activeTab === 'student' ? '#fff' : theme.textSecondary }}>Student</button>
-              <button type="button" onClick={() => setActiveTab('staff')} style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, backgroundColor: activeTab === 'staff' ? '#4f46e5' : 'transparent', color: activeTab === 'staff' ? '#fff' : theme.textSecondary }}>Staff</button>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                value={sortFilter}
+                onChange={(e) => setSortFilter(e.target.value)}
+                style={{ ...styles.input, minWidth: '170px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}
+              >
+                <option value="newest">Sort: Latest Date</option>
+                <option value="oldest">Sort: Oldest Date</option>
+                <option value="name_asc">Sort: Name (A - Z)</option>
+                <option value="name_desc">Sort: Name (Z - A)</option>
+                <option disabled>──────────</option>
+                <option value="status_arrived">Filter: Arrived Only</option>
+                <option value="status_pending">Filter: Pending Only</option>
+                <option value="status_collected">Filter: Collected Only</option>
+                <option value="status_overdue">Filter: Overdue Only</option>
+              </select>
+
+              <div style={{ display: 'flex', gap: '4px', backgroundColor: styles.sectionBg, padding: '4px', borderRadius: '8px' }}>
+                <button type="button" onClick={() => setActiveTab('student')} style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, backgroundColor: activeTab === 'student' ? '#4f46e5' : 'transparent', color: activeTab === 'student' ? '#fff' : theme.textSecondary }}>Student</button>
+                <button type="button" onClick={() => setActiveTab('staff')} style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, backgroundColor: activeTab === 'staff' ? '#4f46e5' : 'transparent', color: activeTab === 'staff' ? '#fff' : theme.textSecondary }}>Staff</button>
+              </div>
             </div>
           )}
         </div>
+
         <div style={{ overflowX: 'auto' }}>
           <table style={styles.table}>
             <thead>
@@ -136,7 +194,8 @@ export function DashboardView({ parcels, trackInput, setTrackInput, onTrack, fou
               </tr>
             </thead>
             <tbody>
-              {filteredParcels.length === 0 ? (<tr><td colSpan="7" style={{ ...styles.td, textAlign: 'center', padding: '32px', color: theme.textSecondary }}>No parcels found</td></tr>) : filteredParcels.map(p => (
+              {/* Maps ONLY the current chunk of 5 parcels */}
+              {paginatedParcels.length === 0 ? (<tr><td colSpan="7" style={{ ...styles.td, textAlign: 'center', padding: '32px', color: theme.textSecondary }}>No parcels found</td></tr>) : paginatedParcels.map(p => (
                 <tr key={p.id} style={{ transition: 'background-color 0.15s' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = styles.tableRowHover; }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
                   <td style={styles.td}><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{p.trackingNo}</span></td>
                   <td style={styles.td}>{p.sender}</td>
@@ -155,9 +214,46 @@ export function DashboardView({ parcels, trackInput, setTrackInput, onTrack, fou
             </tbody>
           </table>
         </div>
+
+        {/* ========================================== */}
+        {/* NEW LOCAL PAGINATION UI FOR DASHBOARD */}
+        {/* ========================================== */}
+        {totalPages > 1 && (
+          <div style={{ padding: '16px 20px', borderTop: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: theme.textSecondary }}>
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, processedParcels.length)} of {processedParcels.length} records
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${theme.border}`, backgroundColor: 'transparent', color: theme.text, cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.4 : 1 }}
+              >
+                <Icons.ChevronLeft width={16} height={16} />
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
+                <button
+                  key={pg}
+                  onClick={() => setCurrentPage(pg)}
+                  style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', backgroundColor: currentPage === pg ? '#4f46e5' : 'transparent', color: currentPage === pg ? '#ffffff' : theme.text, fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
+                >
+                  {pg}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${theme.border}`, backgroundColor: 'transparent', color: theme.text, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.4 : 1 }}
+              >
+                <Icons.ChevronRight width={16} height={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* MOVED BENEFITS SECTION TO THE BOTTOM */}
       <div style={styles.card}>
         <div style={{ padding: '20px 24px', borderBottom: `1px solid ${theme.border}` }}>
           <h3 style={{ fontWeight: 600, color: theme.text, margin: 0, fontSize: '16px' }}>Benefits of Smart Parcel System</h3>
@@ -179,32 +275,6 @@ export function DashboardView({ parcels, trackInput, setTrackInput, onTrack, fou
           ))}
         </div>
       </div>
-
     </div>
   );
 }
-
-// Send parcel OTP code to user
-const sendParcelOTP = (recipientEmail, recipientName, trackingNo, otpCode, rackLocation) => {
-  if (!recipientEmail) {
-    console.error("No email provided for this user.");
-    return;
-  }
-
-  emailjs.send(
-    'service_b85yfd9',         // Service ID
-    'template_bzx28rr',    // Template ID
-    {
-      to_name: recipientName,
-      to_email: recipientEmail,
-      tracking_no: trackingNo,
-      otp: otpCode,
-      rack_location: rackLocation || 'Main Counter'
-    },
-    'JT3OFA36C4eS3rqWS' // public key
-  ).then(() => {
-    console.log(`OTP Email sent successfully to ${recipientEmail}`);
-  }).catch((err) => {
-    console.error("Failed to send OTP email:", err);
-  });
-};

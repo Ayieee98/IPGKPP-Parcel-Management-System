@@ -1354,7 +1354,7 @@ export default function ParcelManagementSystem() {
             </div>
 
             {view === 'dashboard' && (
-              <DashboardView parcels={paginatedParcels} trackInput={trackInput} setTrackInput={setTrackInput} onTrack={handleTrackParcel} foundParcel={foundParcel} onRequestCollect={handleRequestCollect} stats={stats} isAdmin={isAdmin} user={user} racks={racks} onGoToRack={() => setView('rack')} onGoToMaintenance={() => setView('rackmgmt')} theme={themeObj} />
+              <DashboardView parcels={filtered} users={users} trackInput={trackInput} setTrackInput={setTrackInput} onTrack={handleTrackParcel} foundParcel={foundParcel} onRequestCollect={handleRequestCollect} stats={stats} isAdmin={isAdmin} user={user} racks={racks} onGoToRack={() => setView('rack')} onGoToMaintenance={() => setView('rackmgmt')} theme={themeObj} />
             )}
 
             {view === 'myparcels' && <MyParcelsView parcels={paginatedParcels} user={user} rackIoTData={rackIoTData} theme={themeObj} />}

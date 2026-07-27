@@ -1,79 +1,118 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icons } from '../components/Icons';
 import { createStyles } from '../utils/theme';
 
 export function HistoryView({ parcels, user, theme }) {
   const styles = createStyles(theme);
   const isAdmin = user?.role === 'admin';
-  const [activeTab, setActiveTab] = useState('student');
+  const [sortFilter, setSortFilter] = useState('newest');
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Filter: Hanya Collected, dan jika bukan admin hanya milik sendiri
-  const historyParcels = parcels
-    .filter(p => {
-      const isCollected = p.status === 'Collected';
-      const isOwn = p.recipient === user?.username;
-      const matchesRole = isAdmin ? (p.recipientRole === activeTab || (!p.recipientRole && activeTab === 'student')) : true;
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortFilter]);
 
-      return isCollected && (isAdmin ? matchesRole : isOwn);
-    })
-    .sort((a, b) => new Date(b.dateCollected || 0) - new Date(a.dateCollected || 0));
+  // Filter collected items only (plus user restriction if non-admin)
+  const historyParcels = parcels.filter(p => {
+    const isCollected = p.status === 'Collected';
+    if (!isAdmin) return isCollected && p.recipient === user?.username;
+    return isCollected;
+  });
+
+  const processedHistory = [...historyParcels].sort((a, b) => {
+    if (sortFilter === 'name_asc') return (a.recipientName || a.recipient || '').localeCompare(b.recipientName || b.recipient || '');
+    if (sortFilter === 'name_desc') return (b.recipientName || b.recipient || '').localeCompare(a.recipientName || a.recipient || '');
+    if (sortFilter === 'oldest') return new Date(a.dateCollected || a.dateReceived) - new Date(b.dateCollected || b.dateReceived);
+    return new Date(b.dateCollected || b.dateReceived) - new Date(a.dateCollected || a.dateReceived);
+  });
+
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(processedHistory.length / itemsPerPage);
+  const paginatedHistory = processedHistory.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ ...styles.card, padding: '24px', background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', color: 'white', border: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '12px' }}><Icons.Clock width={32} height={32} /></div>
-            <div>
-              <h2 style={{ fontSize: '22px', fontWeight: 700, margin: 0 }}>Collection History</h2>
-              <p style={{ margin: '4px 0 0 0', opacity: 0.9, fontSize: '14px' }}>Records are saved for 7 days before being automatically deleted.</p>
-            </div>
-          </div>
-          {isAdmin && (
-            <div style={{ display: 'flex', gap: '4px', backgroundColor: 'rgba(255,255,255,0.1)', padding: '4px', borderRadius: '8px' }}>
-              <button onClick={() => setActiveTab('student')} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 600, backgroundColor: activeTab === 'student' ? '#4f46e5' : 'transparent', color: '#fff' }}>Student</button>
-              <button onClick={() => setActiveTab('staff')} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 600, backgroundColor: activeTab === 'staff' ? '#4f46e5' : 'transparent', color: '#fff' }}>Staff</button>
-            </div>
-          )}
-        </div>
-      </div>
-
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={styles.card}>
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <h3 style={{ fontWeight: 600, color: theme.text, margin: 0, fontSize: '16px' }}>Collection History</h3>
+          <select
+            value={sortFilter}
+            onChange={(e) => setSortFilter(e.target.value)}
+            style={{ ...styles.input, minWidth: '170px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}
+          >
+            <option value="newest">Sort: Latest Collection Date</option>
+            <option value="oldest">Sort: Oldest Collection Date</option>
+            <option value="name_asc">Sort: Name (A - Z)</option>
+            <option value="name_desc">Sort: Name (Z - A)</option>
+          </select>
+        </div>
+
         <div style={{ overflowX: 'auto' }}>
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Tracking No.</th>
-                {isAdmin && <th style={styles.th}>Recipient</th>}
+                <th style={styles.th}>Tracking</th>
                 <th style={styles.th}>Sender</th>
-                <th style={styles.th}>Date Received</th>
-                <th style={styles.th}>Date Collected</th>
+                <th style={styles.th}>Recipient</th>
+                <th style={styles.th}>Rack Used</th>
                 <th style={styles.th}>Status</th>
+                <th style={styles.th}>Collected Date</th>
               </tr>
             </thead>
             <tbody>
-              {historyParcels.length === 0 ? (
-                <tr><td colSpan={isAdmin ? "6" : "5"} style={{ ...styles.td, textAlign: 'center', padding: '40px', color: theme.textSecondary }}>No record history for the time being.</td></tr>
-              ) : historyParcels.map(p => (
-                <tr key={p.id}>
+              {paginatedHistory.length === 0 ? (
+                <tr><td colSpan="6" style={{ ...styles.td, textAlign: 'center', padding: '32px', color: theme.textSecondary }}>No collection history found</td></tr>
+              ) : paginatedHistory.map(p => (
+                <tr key={p.id} style={{ transition: 'background-color 0.15s' }}>
                   <td style={styles.td}><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{p.trackingNo}</span></td>
-                  {isAdmin && (
-                    <td style={styles.td}>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontWeight: 600 }}>{p.recipientName || p.recipient}</span>
-                        {p.recipientIdNo && <span style={{ fontSize: '11px', color: theme.textSecondary }}>ID: {p.recipientIdNo}</span>}
-                      </div>
-                    </td>
-                  )}
                   <td style={styles.td}>{p.sender}</td>
-                  <td style={styles.td}>{p.dateReceived}</td>
-                  <td style={styles.td}>{p.dateCollected ? new Date(p.dateCollected).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                  <td style={styles.td}><span style={styles.badge('Collected')}>COLLECTED</span></td>
+                  <td style={styles.td}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontWeight: 600 }}>{p.recipientName || p.recipient}</span>
+                      {p.recipientIdNo && <span style={{ fontSize: '11px', color: theme.textSecondary }}>ID: {p.recipientIdNo}</span>}
+                    </div>
+                  </td>
+                  <td style={styles.td}>{p.rackLocation ? <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#4f46e5' }}>{p.rackLocation}</span> : <span style={{ color: theme.textMuted }}>—</span>}</td>
+                  <td style={styles.td}><span style={styles.badge('Collected')}>Collected</span></td>
+                  <td style={styles.td}>{p.dateCollected ? p.dateCollected.split('T')[0] : (p.dateReceived || '-')}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div style={{ padding: '16px 20px', borderTop: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: theme.textSecondary }}>
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, processedHistory.length)} of {processedHistory.length} records
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${theme.border}`, backgroundColor: 'transparent', color: theme.text, cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.4 : 1 }}
+              >
+                <Icons.ChevronLeft width={16} height={16} />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
+                <button
+                  key={pg}
+                  onClick={() => setCurrentPage(pg)}
+                  style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', backgroundColor: currentPage === pg ? '#4f46e5' : 'transparent', color: currentPage === pg ? '#ffffff' : theme.text, fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
+                >
+                  {pg}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${theme.border}`, backgroundColor: 'transparent', color: theme.text, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.4 : 1 }}
+              >
+                <Icons.ChevronRight width={16} height={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
