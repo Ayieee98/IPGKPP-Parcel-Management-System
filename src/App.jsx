@@ -1130,7 +1130,14 @@ export default function ParcelManagementSystem() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedParcels = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  useEffect(() => { setCurrentPage(1); }, [view]);
+  // Resets pagination and clears search history whenever the view changes
+  useEffect(() => {
+    setCurrentPage(1);
+    if (view === 'dashboard') {
+      setTrackInput('');
+      setFoundParcel(null);
+    }
+  }, [view]);
 
   const stats = {
     total: filtered.length,
