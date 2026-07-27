@@ -893,6 +893,9 @@ export default function ParcelManagementSystem() {
 
     setParcels(p => p.map(x => x.id === id ? { ...x, status, dateCollected } : x));
 
+    // Instantly update screen
+    setFoundParcel(prev => (prev && prev.id === id ? { ...prev, status, dateCollected } : prev));
+
     if (isCloudConfigured && cloudSession?.access_token && updatedParcel) {
       try {
         await upsertCloudParcel(updatedParcel, cloudSession.access_token);

@@ -16,8 +16,7 @@ export function DashboardView({ parcels, trackInput, setTrackInput, onTrack, fou
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
       <div style={{ backgroundColor: '#4f46e5', borderRadius: '12px', padding: '24px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', position: 'relative', zIndex: 1 }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', margin: '0 0 8px 0' }}>Search Your Parcel</h2>
-        <p style={{ color: '#c7d2fe', marginBottom: '16px', fontSize: '14px' }}>Enter your tracking number to find the status and description of your package.</p>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', margin: '0 0 8px 0' }}>Search Parcel Number</h2>
         <form onSubmit={onTrack} style={{ display: 'flex', gap: '12px' }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Icons.Search style={{ position: 'absolute', left: '12px', top: '10px', width: 20, height: 20, color: '#a5b4fc' }} />
@@ -54,19 +53,20 @@ export function DashboardView({ parcels, trackInput, setTrackInput, onTrack, fou
                   <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: theme.successText, fontWeight: 600, textTransform: 'uppercase' }}>OTP Code</p>
                   <div style={{ backgroundColor: styles.cardBg, padding: '12px 24px', borderRadius: '8px', border: '2px dashed #16a34a', fontFamily: 'monospace', fontSize: '32px', fontWeight: 700, color: '#16a34a', letterSpacing: '4px' }}>{foundParcel.otp || '------'}</div>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: theme.successText, fontWeight: 600, textTransform: 'uppercase' }}>QR Code</p>
-                  <div style={{ backgroundColor: styles.cardBg, padding: '8px', borderRadius: '8px', border: `1px solid ${theme.successBorder}` }}>
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(foundParcel.otp || '')}`} alt="QR Code" style={{ width: '120px', height: '120px', display: 'block' }} />
-                  </div>
-                </div>
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: theme.successText, textAlign: 'center', maxWidth: '400px' }}>Show this code to postal staff for verification before collecting the parcel.</p>
             </div>
           )}
-          {foundParcel.status === 'Arrived' && (
+
+          {/* VERIFY BUTTON: Now shows for 'Arrived' and 'Overdue', hides instantly when 'Collected' */}
+          {foundParcel.status !== 'Collected' && (
             <div style={{ padding: '12px 24px', backgroundColor: styles.sectionBg, borderTop: `1px solid ${styles.sectionBorder}` }}>
-              <button onClick={() => onRequestCollect(foundParcel)} style={{ padding: '8px 24px', backgroundColor: '#4f46e5', color: '#ffffff', borderRadius: '8px', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><Icons.Lock width={16} height={16} />Verify & Collect</button>
+              <button
+                onClick={() => onRequestCollect(foundParcel)}
+                style={{ padding: '8px 24px', backgroundColor: '#4f46e5', color: '#ffffff', borderRadius: '8px', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Icons.Lock width={16} height={16} />Verify & Collect
+              </button>
             </div>
           )}
         </div>
@@ -190,7 +190,7 @@ const sendParcelOTP = (recipientEmail, recipientName, trackingNo, otpCode, rackL
     console.error("No email provided for this user.");
     return;
   }
-  
+
   emailjs.send(
     'service_b85yfd9',         // Service ID
     'template_bzx28rr',    // Template ID
@@ -200,7 +200,7 @@ const sendParcelOTP = (recipientEmail, recipientName, trackingNo, otpCode, rackL
       tracking_no: trackingNo,
       otp: otpCode,
       rack_location: rackLocation || 'Main Counter'
-    }, 
+    },
     'JT3OFA36C4eS3rqWS' // public key
   ).then(() => {
     console.log(`OTP Email sent successfully to ${recipientEmail}`);
