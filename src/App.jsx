@@ -1174,15 +1174,25 @@ export default function ParcelManagementSystem() {
         </div>
         <nav style={styles.nav}>
           {[
-            { id: 'dashboard', label: 'Dashboard', icon: Icons.LayoutDashboard },
-            { id: 'myparcels', label: 'Parcel Tracker', icon: Icons.Inbox },
+            // STRICTLY ADMIN
+            { id: 'dashboard', label: 'Dashboard', icon: Icons.LayoutDashboard, adminOnly: true },
+            
+            // STRICTLY USERS (Students/Staff)
+            { id: 'myparcels', label: 'Parcel Tracker', icon: Icons.Inbox, userOnly: true },
+            
+            // VISIBLE TO EVERYONE
             { id: 'history', label: 'Collection History', icon: Icons.Clock },
+            
+            // STRICTLY ADMIN
             { id: 'admin', label: 'Manage Parcels', icon: Icons.Users, adminOnly: true },
             { id: 'users', label: 'Manage Users', icon: Icons.User, adminOnly: true },
-            { id: 'rack', label: 'Smart Rack', icon: Icons.Layers },
-            { id: 'racksensors', label: 'Rack Sensors (IoT)', icon: Icons.Cpu },
+            { id: 'rack', label: 'Smart Rack', icon: Icons.Layers, adminOnly: true },
+            { id: 'racksensors', label: 'Rack Sensors (IoT)', icon: Icons.Cpu, adminOnly: true },
             { id: 'rackmgmt', label: 'Rack Maintenance', icon: Icons.Wrench, adminOnly: true }
-          ].filter(item => !item.adminOnly || isAdmin).map(item => (
+          ]
+          // NEW FILTER: If it's an Admin, hide 'userOnly'. If it's a User, hide 'adminOnly'.
+          .filter(item => isAdmin ? !item.userOnly : !item.adminOnly)
+          .map(item => (
             <button key={item.id} onClick={() => { setView(item.id); setSidebarOpen(false); }} style={styles.navItem(view === item.id)}>
               <item.icon width={20} height={20} />{item.label}
             </button>

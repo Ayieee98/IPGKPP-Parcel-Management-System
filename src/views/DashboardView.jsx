@@ -201,7 +201,7 @@ const sendParcelOTP = (recipientEmail, recipientName, trackingNo, otpCode, rackL
       otp: otpCode,
       rack_location: rackLocation || 'Main Counter'
     }, 
-    'JT3OFA36C4eS3rqWS'          // Public Key
+    'JT3OFA36C4eS3rqWS' // public key
   ).then(() => {
     console.log(`OTP Email sent successfully to ${recipientEmail}`);
   }).catch((err) => {
