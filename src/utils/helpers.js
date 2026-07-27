@@ -24,30 +24,31 @@ export const getNotificationStorageKey = (username = 'guest') => `${STORAGE_KEYS
 
 export const getParcelNotificationId = (parcel) => `${parcel.id || parcel.trackingNo || 'parcel'}:${parcel.status || 'Pending'}`;
 
+// Send notfication message based on parcel status
 export const getParcelNotificationMessage = (parcel) => {
   const tracking = parcel.trackingNo || 'Parcel';
-  const rackText = parcel.rackLocation ? ` Rak: ${parcel.rackLocation}.` : '';
-  
+  const rackText = parcel.rackLocation ? ` Rack: ${parcel.rackLocation}.` : '';
+
   // Grab the OTP if it exists
-  const otpText = parcel.otp ? ` Kod OTP anda ialah: *${parcel.otp}*.` : '';
+  const otpText = parcel.otp ? ` Your OTP code is: *${parcel.otp}*.` : '';
 
   if (parcel.status === 'Arrived') {
     return {
-      title: 'Parcel telah sampai',
-      body: `${tracking} daripada ${parcel.sender || 'kurier'} telah sampai.${rackText}${otpText} Sila tunjuk kod ini untuk mengambil parcel anda.`,
+      title: 'Parcel has arrived',
+      body: `${tracking} from ${parcel.sender || 'courier'} has arrived.${rackText}${otpText} Please show this code to the staff before claiming your parcel.`,
       tone: 'success',
     };
   }
   if (parcel.status === 'Overdue') {
     return {
       title: 'Parcel overdue',
-      body: `${tracking} masih belum diambil selepas tempoh ditetapkan.${rackText}${otpText} Sila ambil secepat mungkin.`,
+      body: `${tracking} is overdue.${rackText}${otpText} Please collect it as soon as possible.`,
       tone: 'danger',
     };
   }
   return {
-    title: 'Parcel masih pending',
-    body: `${tracking} sedang diproses dan belum sedia untuk diambil.`,
+    title: 'Parcel still pending',
+    body: `${tracking} is still being processed and is not yet ready for collection.`,
     tone: 'warning',
   };
 };

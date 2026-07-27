@@ -18,7 +18,7 @@ export function MyParcelsView({ parcels, user, rackIoTData, theme }) {
   };
 
   const filteredParcels = parcels.filter(p => {
-    if (!isAdmin) return true; // Pelajar/Staf sudah difilter di peringkat atas
+    if (!isAdmin) return true;
     const matchesRole = p.recipientRole === activeTab || (!p.recipientRole && activeTab === 'student');
     return matchesRole;
   });
@@ -70,12 +70,6 @@ export function MyParcelsView({ parcels, user, rackIoTData, theme }) {
                   <div style={{ textAlign: 'center' }}>
                     <p style={{ margin: '0 0 6px 0', fontSize: '11px', color: theme.successText, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kod OTP</p>
                     <div style={{ backgroundColor: styles.cardBg, padding: '10px 20px', borderRadius: '8px', border: '2px dashed #16a34a', fontFamily: 'monospace', fontSize: '28px', fontWeight: 800, color: '#16a34a', letterSpacing: '4px' }}>{p.otp || '------'}</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 6px 0', fontSize: '11px', color: theme.successText, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>QR Code</p>
-                    <div style={{ backgroundColor: styles.cardBg, padding: '6px', borderRadius: '8px', border: `1px solid ${theme.successBorder}` }}>
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(p.otp || '')}`} alt="QR Code" style={{ width: '100px', height: '100px', display: 'block' }} />
-                    </div>
                   </div>
                 </div>
                 <p style={{ margin: 0, fontSize: '12px', color: theme.successText, textAlign: 'center', maxWidth: '350px', lineHeight: '1.4' }}>Please show this code to the staff before claiming your parcels.</p>

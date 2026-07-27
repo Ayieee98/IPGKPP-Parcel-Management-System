@@ -69,7 +69,15 @@ export function UserManagementView({ users = [], userForm, setUserForm, onSaveUs
           <h3 style={{ fontWeight: 600, color: theme.text, margin: 0, fontSize: '16px' }}>Student & Staff Management</h3>
         </div>
 
-        <form onSubmit={handleFormSubmit} style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <form onSubmit={handleFormSubmit} style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}
+
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+            }
+          }}
+
+        >
 
           {/* ROW 1 */}
           <input value={userForm.name || ''} onChange={e => setUserForm(prev => ({ ...prev, name: e.target.value.toUpperCase() }))} placeholder="FULL NAME" style={styles.input} required />

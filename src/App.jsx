@@ -133,7 +133,15 @@ function ChangeInfoModal({ user, onClose, onSave, isCloudConfigured, themeObj })
 
   return (
     <Modal onClose={onClose} title="Settings & Security" theme={themeObj}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+          }
+        }}
+
+      >
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <h4 style={{ margin: 0, fontSize: '13px', color: themeObj.textSecondary, textTransform: 'uppercase', fontWeight: 700 }}>Personal Information</h4>
@@ -750,6 +758,15 @@ export default function ParcelManagementSystem() {
   const handleAddParcel = async (e) => {
     e.preventDefault();
     if (!adminForm.trackingNo || !adminForm.recipient) return;
+
+    // NEW: STRICT CONFIRMATION BEFORE SAVING
+    // ==========================================
+    const isConfirmed = window.confirm(`Are you sure you want to register this parcel for ${adminForm.recipient}?`);
+    if (!isConfirmed) {
+      return; // Instantly kills the process if the admin clicks "Cancel"
+    }
+
+
     const senderValue = adminForm.sender === 'Others' ? adminForm.senderOther : adminForm.sender;
     if (!senderValue) return;
     if (isCloudConfigured && !cloudSession?.access_token) {
@@ -1176,13 +1193,13 @@ export default function ParcelManagementSystem() {
           {[
             // STRICTLY ADMIN
             { id: 'dashboard', label: 'Dashboard', icon: Icons.LayoutDashboard, adminOnly: true },
-            
+
             // STRICTLY USERS (Students/Staff)
             { id: 'myparcels', label: 'Parcel Tracker', icon: Icons.Inbox, userOnly: true },
-            
+
             // VISIBLE TO EVERYONE
             { id: 'history', label: 'Collection History', icon: Icons.Clock },
-            
+
             // STRICTLY ADMIN
             { id: 'admin', label: 'Manage Parcels', icon: Icons.Users, adminOnly: true },
             { id: 'users', label: 'Manage Users', icon: Icons.User, adminOnly: true },
@@ -1190,13 +1207,13 @@ export default function ParcelManagementSystem() {
             { id: 'racksensors', label: 'Rack Sensors (IoT)', icon: Icons.Cpu, adminOnly: true },
             { id: 'rackmgmt', label: 'Rack Maintenance', icon: Icons.Wrench, adminOnly: true }
           ]
-          // NEW FILTER: If it's an Admin, hide 'userOnly'. If it's a User, hide 'adminOnly'.
-          .filter(item => isAdmin ? !item.userOnly : !item.adminOnly)
-          .map(item => (
-            <button key={item.id} onClick={() => { setView(item.id); setSidebarOpen(false); }} style={styles.navItem(view === item.id)}>
-              <item.icon width={20} height={20} />{item.label}
-            </button>
-          ))}
+            // NEW FILTER: If it's an Admin, hide 'userOnly'. If it's a User, hide 'adminOnly'.
+            .filter(item => isAdmin ? !item.userOnly : !item.adminOnly)
+            .map(item => (
+              <button key={item.id} onClick={() => { setView(item.id); setSidebarOpen(false); }} style={styles.navItem(view === item.id)}>
+                <item.icon width={20} height={20} />{item.label}
+              </button>
+            ))}
         </nav>
         <div style={{ padding: '16px', borderTop: `1px solid ${themeObj.border}`, fontSize: '11px', color: themeObj.textMuted, textAlign: 'center' }}>
           <p style={{ margin: 0, fontWeight: 600 }}>IPGKPP Smart Rack System v2.0</p>
