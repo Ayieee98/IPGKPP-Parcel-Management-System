@@ -1390,17 +1390,6 @@ export default function ParcelManagementSystem() {
             {view === 'admin' && isAdmin && (
               <ParcelManagementView parcels={parcels} users={users} form={adminForm} setForm={setAdminForm} onAdd={handleAddParcel} onRequestCollect={handleRequestCollect} onDelete={handleDeleteParcel} onUpdateStatus={updateStatus} onOpenScanner={openScannerForTracking} scannedTracking={scannedTracking} racks={racks} theme={themeObj} />
             )}
-
-            {totalPages > 1 && (view === 'dashboard' || view === 'myparcels' || view === 'admin') && (
-              <div style={styles.pagination}>
-                <span style={{ fontSize: '14px', color: themeObj.textSecondary }}>Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} records</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} style={{ ...styles.pageBtn(false), opacity: currentPage === 1 ? 0.4 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}><Icons.ChevronLeft width={16} height={16} /></button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (<button key={pg} onClick={() => setCurrentPage(pg)} style={styles.pageBtn(currentPage === pg)}>{pg}</button>))}
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={{ ...styles.pageBtn(false), opacity: currentPage === totalPages ? 0.4 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}><Icons.ChevronRight width={16} height={16} /></button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
