@@ -1,4 +1,5 @@
 export const IPGKPP_LOGO = '/logo.png';
+export const IPGKPP_SMARTRACK = '/Logo Smart Rack.png';
 export const IPGKPP_BG = 'https://image.qwenlm.ai/public_source/a5365ccb-778a-4d10-aedb-64b519a3dff3/1ee67feb7-707c-4c46-8395-a946662c0e1d.png';
 
 export const COURIERS = [

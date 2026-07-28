@@ -22,6 +22,7 @@ import {
 
 import {
   IPGKPP_LOGO,
+  IPGKPP_SMARTRACK,
   IPGKPP_BG,
   COURIERS,
   STORAGE_KEYS,
@@ -1262,7 +1263,15 @@ export default function ParcelManagementSystem() {
 
       <aside style={{ ...styles.sidebar, ...(isMobile ? (sidebarOpen ? styles.sidebarOpen : styles.sidebarMobile) : {}) }}>
         <div style={styles.sidebarHeader}>
-          <img src={IPGKPP_LOGO} alt="IPGKPP" style={styles.sidebarLogo} />
+          <img src={IPGKPP_SMARTRACK} alt="IPGKPP"
+            style={{
+              ...styles.sidebarLogo,
+              maxWidth: '140px',
+              maxHeight: '140px',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain'
+            }} />
         </div>
         <nav style={styles.nav}>
           {[
@@ -1302,7 +1311,11 @@ export default function ParcelManagementSystem() {
             <Icons.Menu width={24} height={24} />
           </button>
           <div style={styles.headerInstitution}>
-            <img src={IPGKPP_LOGO} alt="IPGKPP" style={styles.headerInstitutionLogo} />
+            <img src={IPGKPP_LOGO} alt="IPGKPP" style={{
+              ...styles.headerInstitutionLogo,
+              height: '45px',
+              width: 'auto'
+            }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`} style={styles.themeToggle} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = styles.themeToggleHover; }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = styles.btnSecondaryBg; }}>
@@ -1410,11 +1423,10 @@ export default function ParcelManagementSystem() {
         <div style={styles.content}>
           <div style={styles.contentBg} />
           <div style={styles.contentInner}>
-            <div style={styles.pageBanner}>
-              <img src={IPGKPP_LOGO} alt="IPGKPP" style={styles.bannerLogo} />
-              <div style={styles.bannerText}>
-                <h2 style={styles.bannerTitle}>INSTITUT PENDIDIKAN GURU KAMPUS PULAU PINANG</h2>
-                <p style={styles.bannerSubtitle}>IPGKPP Smart Rack Parcel Management System — {viewTitles[view] || 'Dashboard'}</p>
+            <div style={{ ...styles.pageBanner, justifyContent: 'center' }}>
+              <div style={{ ...styles.bannerText, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%' }}>
+                <h2 style={{ ...styles.bannerTitle, textAlign: 'center' }}>INSTITUT PENDIDIKAN GURU KAMPUS PULAU PINANG</h2>
+                <p style={{ ...styles.bannerSubtitle, textAlign: 'center' }}>IPGKPP Smart Rack Parcel Management System — {viewTitles[view] || 'Dashboard'}</p>
               </div>
             </div>
 
