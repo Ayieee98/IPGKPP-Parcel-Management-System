@@ -44,9 +44,6 @@ export function ParcelManagementView({ parcels, users = [], form, setForm, onAdd
     }
   };
 
-  // ==========================================
-  // SMART DYNAMIC ROLE-CHECKING ENGINE
-  // ==========================================
   const getParcelRole = (parcel) => {
     if (parcel.recipientRole) return parcel.recipientRole;
     const foundUser = users.find(u => u.username === parcel.recipient);
@@ -171,7 +168,9 @@ export function ParcelManagementView({ parcels, users = [], form, setForm, onAdd
                     type="checkbox"
                     checked={form.assignRack || false}
                     onChange={up('assignRack')}
-                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#4f46e5' }}
+                    style={{
+                      width: '16px', height: '16px', cursor: 'pointer', accentColor: '#4f46e5', backgroundColor: '#ffffff', colorScheme: 'light', border: '1px solid #cbd5e1', borderRadius: '4px'
+                    }}
                   />Assign to Smart Rack Shelf
                 </label>
                 {form.assignRack && (
