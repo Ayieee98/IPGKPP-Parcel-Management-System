@@ -6,7 +6,7 @@ import emailjs from '@emailjs/browser';
 
 // Added 'users' prop so we can check for duplicate usernames
 export function AuthView({ onLogin, onSignUp, view, setView, theme, users = [] }) {
-  const [authMode, setAuthMode] = useState('user'); 
+  const [authMode, setAuthMode] = useState('user');
 
   return (
     <div style={{ minHeight: '100vh', background: authMode === 'admin' ? 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)' : 'linear-gradient(135deg, #0f172a 0%, #312e81 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
@@ -53,36 +53,44 @@ function LoginForm({ onLogin, theme, isAdmin = false }) {
   const [u, setU] = useState('');
   const [p, setP] = useState('');
   const [showPassword, setShowPassword] = useState(false); // Track visibility
-  
+
   const styles = createStyles(theme);
-  
+
   return (
-    <form onSubmit={e => { e.preventDefault(); onLogin(u, p); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <form onSubmit={e => { e.preventDefault(); onLogin(u, p); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+        }
+      }}
+
+    >
       <div>
         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: theme.text, marginBottom: '4px' }}>{isAdmin ? 'Admin Username' : 'Username'}</label>
         <input value={u} onChange={e => setU(e.target.value)} style={{ ...styles.input, boxSizing: 'border-box' }} placeholder={isAdmin ? "Enter admin ID" : "e.g. student1, staff1"} required />
       </div>
-      
+
       <div>
         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: theme.text, marginBottom: '4px' }}>Password</label>
         <div style={{ position: 'relative' }}>
-          <input 
-            type={showPassword ? "text" : "password"} 
-            value={p} 
-            onChange={e => setP(e.target.value)} 
-            style={{ ...styles.input, boxSizing: 'border-box', width: '100%', paddingRight: '40px' }} 
-            placeholder="••••••••" 
-            required 
+          <input
+            type={showPassword ? "text" : "password"}
+            value={p}
+            onChange={e => setP(e.target.value)}
+            style={{ ...styles.input, boxSizing: 'border-box', width: '100%', paddingRight: '40px' }}
+            placeholder="••••••••"
+            required
           />
-          <button 
-            type="button" 
-            onClick={() => setShowPassword(!showPassword)} 
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
             style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: '#64748b' }}
           >
             {showPassword ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
             )}
           </button>
         </div>
@@ -102,19 +110,19 @@ function SignUpForm({ onSignUp, theme, users = [] }) {
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
-  const [form, setForm] = useState({ 
-    username: '', 
-    email: '', 
-    password: '', 
+
+  const [form, setForm] = useState({
+    username: '',
+    email: '',
+    password: '',
     confirmPassword: '',
-    name: '', 
-    idNo: '', 
+    name: '',
+    idNo: '',
     countryCode: '+60',
-    phoneLocal: '', 
-    role: 'student' 
+    phoneLocal: '',
+    role: 'student'
   });
-  
+
   const styles = createStyles(theme);
   const prev = () => setStep(s => Math.max(1, s - 1));
   const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -162,36 +170,44 @@ function SignUpForm({ onSignUp, theme, users = [] }) {
       role: form.role,
       isVerified: true // Automatically verified without a code
     };
-    
+
     // NEW: Trigger the welcome email in the background!
     sendWelcomeEmail(form.name, form.email, form.role);
-    
+
     onSignUp(finalData);
   };
 
   // Reusable Eye Icon Component
   const EyeIcon = ({ hidden }) => hidden ? (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
   ) : (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
   );
 
   return (
-    <form onSubmit={step === 3 ? handleFinalSubmit : e => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <form onSubmit={step === 3 ? handleFinalSubmit : e => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+        }
+      }}
+
+    >
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
         {[1, 2, 3].map(s => <div key={s} style={{ height: '4px', flex: 1, borderRadius: '9999px', backgroundColor: s <= step ? '#4f46e5' : theme.border }} />)}
       </div>
-      
+
       {step === 1 && <>
         <input name="username" value={form.username} onChange={handleChange} style={styles.input} placeholder="Username" required />
         <input name="email" value={form.email} onChange={handleChange} type="email" style={styles.input} placeholder="Email Address" required />
         <button type="button" onClick={handleStep1Next} style={styles.btnPrimary}>Continue</button>
       </>}
-      
+
       {step === 2 && <>
-        <input name="name" value={form.name} onChange={e => setForm(prev => ({...prev, name: e.target.value.toUpperCase()}))} style={styles.input} placeholder="FULL NAME" required />
+        <input name="name" value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value.toUpperCase() }))} style={styles.input} placeholder="FULL NAME" required />
         <input name="idNo" value={form.idNo} onChange={handleChange} style={styles.input} placeholder={form.role === 'student' ? "Matric Number" : "Staff ID Number"} required />
-        
+
         <div style={{ display: 'flex', gap: '8px' }}>
           <select name="countryCode" value={form.countryCode} onChange={handleChange} style={{ ...styles.input, width: '100px', flexShrink: 0, padding: '10px 8px' }}>
             <option value="+60">🇲🇾 +60</option>
@@ -199,7 +215,7 @@ function SignUpForm({ onSignUp, theme, users = [] }) {
             <option value="+65">🇸🇬 +65</option>
             <option value="+62">🇮🇩 +62</option>
           </select>
-          <input name="phoneLocal" value={form.phoneLocal} onChange={e => setForm(prev => ({...prev, phoneLocal: e.target.value.replace(/\D/g, '')}))} type="tel" style={{ ...styles.input, flex: 1 }} placeholder="1023456789" required />
+          <input name="phoneLocal" value={form.phoneLocal} onChange={e => setForm(prev => ({ ...prev, phoneLocal: e.target.value.replace(/\D/g, '') }))} type="tel" style={{ ...styles.input, flex: 1 }} placeholder="1023456789" required />
         </div>
 
         <div style={{ position: 'relative' }}>
@@ -221,7 +237,7 @@ function SignUpForm({ onSignUp, theme, users = [] }) {
           <button type="button" onClick={handleStep2Next} style={styles.btnPrimary}>Next</button>
         </div>
       </>}
-      
+
       {step === 3 && <>
         <select name="role" value={form.role} onChange={handleChange} style={styles.input}>
           <option value="student">Student</option>
@@ -238,7 +254,7 @@ function SignUpForm({ onSignUp, theme, users = [] }) {
 
 const sendWelcomeEmail = (userName, userEmail, userRole) => {
   if (!userEmail) return;
-  
+
   // Replace with your actual EmailJS keys
   emailjs.send(
     'service_b85yfd9', // service ID
@@ -247,7 +263,7 @@ const sendWelcomeEmail = (userName, userEmail, userRole) => {
       to_name: userName,
       to_email: userEmail,
       role: userRole === 'staff' ? 'Staff' : 'Student'
-    }, 
+    },
     'JT3OFA36C4eS3rqWS' // public key
   ).then(() => {
     console.log("Welcome email sent successfully!");

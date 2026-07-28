@@ -133,7 +133,15 @@ function ChangeInfoModal({ user, onClose, onSave, isCloudConfigured, themeObj })
 
   return (
     <Modal onClose={onClose} title="Settings & Security" theme={themeObj}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+          }
+        }}
+
+      >
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <h4 style={{ margin: 0, fontSize: '13px', color: themeObj.textSecondary, textTransform: 'uppercase', fontWeight: 700 }}>Personal Information</h4>
@@ -750,6 +758,15 @@ export default function ParcelManagementSystem() {
   const handleAddParcel = async (e) => {
     e.preventDefault();
     if (!adminForm.trackingNo || !adminForm.recipient) return;
+
+    // NEW: STRICT CONFIRMATION BEFORE SAVING
+    // ==========================================
+    const isConfirmed = window.confirm(`Are you sure you want to register this parcel for ${adminForm.recipient}?`);
+    if (!isConfirmed) {
+      return; // Instantly kills the process if the admin clicks "Cancel"
+    }
+
+
     const senderValue = adminForm.sender === 'Others' ? adminForm.senderOther : adminForm.sender;
     if (!senderValue) return;
     if (isCloudConfigured && !cloudSession?.access_token) {
@@ -875,6 +892,9 @@ export default function ParcelManagementSystem() {
     const updatedParcel = parcel ? { ...parcel, status, dateCollected } : null;
 
     setParcels(p => p.map(x => x.id === id ? { ...x, status, dateCollected } : x));
+
+    // Instantly update screen
+    setFoundParcel(prev => (prev && prev.id === id ? { ...prev, status, dateCollected } : prev));
 
     if (isCloudConfigured && cloudSession?.access_token && updatedParcel) {
       try {
@@ -1113,7 +1133,14 @@ export default function ParcelManagementSystem() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedParcels = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  useEffect(() => { setCurrentPage(1); }, [view]);
+  // Resets pagination and clears search history whenever the view changes
+  useEffect(() => {
+    setCurrentPage(1);
+    if (view === 'dashboard') {
+      setTrackInput('');
+      setFoundParcel(null);
+    }
+  }, [view]);
 
   const stats = {
     total: filtered.length,
@@ -1174,19 +1201,29 @@ export default function ParcelManagementSystem() {
         </div>
         <nav style={styles.nav}>
           {[
-            { id: 'dashboard', label: 'Dashboard', icon: Icons.LayoutDashboard },
-            { id: 'myparcels', label: 'Parcel Tracker', icon: Icons.Inbox },
+            // STRICTLY ADMIN
+            { id: 'dashboard', label: 'Dashboard', icon: Icons.LayoutDashboard, adminOnly: true },
+
+            // STRICTLY USERS (Students/Staff)
+            { id: 'myparcels', label: 'Parcel Tracker', icon: Icons.Inbox, userOnly: true },
+
+            // VISIBLE TO EVERYONE
             { id: 'history', label: 'Collection History', icon: Icons.Clock },
+
+            // STRICTLY ADMIN
             { id: 'admin', label: 'Manage Parcels', icon: Icons.Users, adminOnly: true },
             { id: 'users', label: 'Manage Users', icon: Icons.User, adminOnly: true },
-            { id: 'rack', label: 'Smart Rack', icon: Icons.Layers },
-            { id: 'racksensors', label: 'Rack Sensors (IoT)', icon: Icons.Cpu },
+            { id: 'rack', label: 'Smart Rack', icon: Icons.Layers, adminOnly: true },
+            { id: 'racksensors', label: 'Rack Sensors (IoT)', icon: Icons.Cpu, adminOnly: true },
             { id: 'rackmgmt', label: 'Rack Maintenance', icon: Icons.Wrench, adminOnly: true }
-          ].filter(item => !item.adminOnly || isAdmin).map(item => (
-            <button key={item.id} onClick={() => { setView(item.id); setSidebarOpen(false); }} style={styles.navItem(view === item.id)}>
-              <item.icon width={20} height={20} />{item.label}
-            </button>
-          ))}
+          ]
+            // NEW FILTER: If it's an Admin, hide 'userOnly'. If it's a User, hide 'adminOnly'.
+            .filter(item => isAdmin ? !item.userOnly : !item.adminOnly)
+            .map(item => (
+              <button key={item.id} onClick={() => { setView(item.id); setSidebarOpen(false); }} style={styles.navItem(view === item.id)}>
+                <item.icon width={20} height={20} />{item.label}
+              </button>
+            ))}
         </nav>
         <div style={{ padding: '16px', borderTop: `1px solid ${themeObj.border}`, fontSize: '11px', color: themeObj.textMuted, textAlign: 'center' }}>
           <p style={{ margin: 0, fontWeight: 600 }}>IPGKPP Smart Rack System v2.0</p>
@@ -1317,7 +1354,7 @@ export default function ParcelManagementSystem() {
             </div>
 
             {view === 'dashboard' && (
-              <DashboardView parcels={paginatedParcels} trackInput={trackInput} setTrackInput={setTrackInput} onTrack={handleTrackParcel} foundParcel={foundParcel} onRequestCollect={handleRequestCollect} stats={stats} isAdmin={isAdmin} user={user} racks={racks} onGoToRack={() => setView('rack')} onGoToMaintenance={() => setView('rackmgmt')} theme={themeObj} />
+              <DashboardView parcels={filtered} users={users} trackInput={trackInput} setTrackInput={setTrackInput} onTrack={handleTrackParcel} foundParcel={foundParcel} onRequestCollect={handleRequestCollect} stats={stats} isAdmin={isAdmin} user={user} racks={racks} onGoToRack={() => setView('rack')} onGoToMaintenance={() => setView('rackmgmt')} theme={themeObj} />
             )}
 
             {view === 'myparcels' && <MyParcelsView parcels={paginatedParcels} user={user} rackIoTData={rackIoTData} theme={themeObj} />}
@@ -1352,17 +1389,6 @@ export default function ParcelManagementSystem() {
 
             {view === 'admin' && isAdmin && (
               <ParcelManagementView parcels={parcels} users={users} form={adminForm} setForm={setAdminForm} onAdd={handleAddParcel} onRequestCollect={handleRequestCollect} onDelete={handleDeleteParcel} onUpdateStatus={updateStatus} onOpenScanner={openScannerForTracking} scannedTracking={scannedTracking} racks={racks} theme={themeObj} />
-            )}
-
-            {totalPages > 1 && (view === 'dashboard' || view === 'myparcels' || view === 'admin') && (
-              <div style={styles.pagination}>
-                <span style={{ fontSize: '14px', color: themeObj.textSecondary }}>Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} records</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} style={{ ...styles.pageBtn(false), opacity: currentPage === 1 ? 0.4 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}><Icons.ChevronLeft width={16} height={16} /></button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (<button key={pg} onClick={() => setCurrentPage(pg)} style={styles.pageBtn(currentPage === pg)}>{pg}</button>))}
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={{ ...styles.pageBtn(false), opacity: currentPage === totalPages ? 0.4 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}><Icons.ChevronRight width={16} height={16} /></button>
-                </div>
-              </div>
             )}
           </div>
         </div>
