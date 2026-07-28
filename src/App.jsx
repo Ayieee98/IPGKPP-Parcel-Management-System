@@ -22,6 +22,7 @@ import {
 
 import {
   IPGKPP_LOGO,
+  IPGKPP_SMARTRACK,
   IPGKPP_BG,
   COURIERS,
   STORAGE_KEYS,
@@ -297,7 +298,16 @@ export default function ParcelManagementSystem() {
         if (profile) {
           setUser(profile);
           setProfileForm({ name: profile.name, email: profile.email, phone: profile.phone || '', address: '' });
-          setView('dashboard');
+
+          // ==========================================
+          // FIX: ROUTE BASED ON ROLE (NOT HARDCODED)
+          // ==========================================
+          if (profile.role === 'admin') {
+            setView('dashboard');
+          } else {
+            setView('myparcels');
+          }
+          // ==========================================
         }
       }
     } catch (error) {
@@ -524,12 +534,12 @@ export default function ParcelManagementSystem() {
 
         // Security Check: Verify role matches login page
         if (loginType === 'admin' && loggedUser.role !== 'admin') {
-          alert('Akses Ditolak: Akaun ini bukan akaun Administrator.');
+          alert('Access Denied: This account is not an Administrator account.');
           clearCloudSession();
           return;
         }
         if (loginType === 'user' && loggedUser.role === 'admin') {
-          alert('Sila gunakan halaman Admin untuk log masuk ke akaun Administrator.');
+          alert('Please use admin\'s login page to log in to the administrator account.');
           clearCloudSession();
           return;
         }
@@ -537,11 +547,17 @@ export default function ParcelManagementSystem() {
         setCloudSession(session);
         setUser(loggedUser);
         setProfileForm({ name: loggedUser.name, email: loggedUser.email, phone: loggedUser.phone || '', address: '' });
-        setView('dashboard');
+
+        if (loggedUser.role === 'admin') {
+          setView('dashboard');
+        } else {
+          setView('myparcels');
+        }
+
         await loadCloudData(session);
       } catch (error) {
         console.error('Cloud login failed:', error);
-        alert('ID atau Kata Laluan salah.');
+        alert('Invalid username or password.');
       }
       return;
     }
@@ -550,20 +566,26 @@ export default function ParcelManagementSystem() {
     if (found) {
       // Security Check: Verify role matches login page
       if (loginType === 'admin' && found.role !== 'admin') {
-        alert('Akses Ditolak: Akaun ini bukan akaun Administrator.');
+        alert('Access Denied: This account is not an Administrator account.');
         return;
       }
       if (loginType === 'user' && found.role === 'admin') {
-        alert('Sila gunakan halaman Admin untuk log masuk ke akaun Administrator.');
+        alert('Please use admin\'s login page to log in to the administrator account.');
         return;
       }
 
       const loggedUser = { ...found, lastLogin: new Date().toISOString() };
       setUser(loggedUser);
       setProfileForm({ name: found.name, email: found.email, phone: found.phone || '', address: '' });
-      setView('dashboard');
+
+      // Reroute user and admin to their respective dashboards based on role
+      if (loggedUser.role === 'admin') {
+        setView('dashboard');
+      } else {
+        setView('myparcels');
+      }
     }
-    else alert('ID atau Kata Laluan salah.');
+    else alert('Invalid username or password.');
   };
 
   const handleLogout = () => {
@@ -631,6 +653,50 @@ export default function ParcelManagementSystem() {
     if (users.some(u => u.email === email && u.id !== adminUserForm.id)) {
       alert('Email already exists.');
       return;
+    }
+
+    // Syncs username, name, ID, and role changes to all existing parcels
+    if (isEditing) {
+      const oldUser = users.find(u => u.id === adminUserForm.id);
+
+      // Check if ANY important identifiable info changed
+      if (oldUser && (
+        oldUser.username !== username ||
+        oldUser.name !== name ||
+        oldUser.idNo !== idNo ||
+        oldUser.role !== adminUserForm.role
+      )) {
+        const oldUsername = oldUser.username;
+
+        // 1. Instantly update parcels in the local UI state
+        setParcels(prev => prev.map(p =>
+          p.recipient === oldUsername ? {
+            ...p,
+            recipient: username,
+            recipientName: name,
+            recipientIdNo: idNo,
+            recipientRole: adminUserForm.role
+          } : p
+        ));
+
+        // 2. If connected to Supabase Cloud, push the updates to the database
+        if (isCloudConfigured && cloudSession?.access_token) {
+          const affectedParcels = parcels.filter(p => p.recipient === oldUsername);
+          for (const p of affectedParcels) {
+            try {
+              await upsertCloudParcel({
+                ...p,
+                recipient: username,
+                recipientName: name,
+                recipientIdNo: idNo,
+                recipientRole: adminUserForm.role
+              }, cloudSession.access_token);
+            } catch (err) {
+              console.error('Failed to sync parcel updates in cloud:', err);
+            }
+          }
+        }
+      }
     }
 
     const userPayload = { ...adminUserForm, username, email, name, phone, idNo, password };
@@ -1197,7 +1263,15 @@ export default function ParcelManagementSystem() {
 
       <aside style={{ ...styles.sidebar, ...(isMobile ? (sidebarOpen ? styles.sidebarOpen : styles.sidebarMobile) : {}) }}>
         <div style={styles.sidebarHeader}>
-          <img src={IPGKPP_LOGO} alt="IPGKPP" style={styles.sidebarLogo} />
+          <img src={IPGKPP_SMARTRACK} alt="IPGKPP"
+            style={{
+              ...styles.sidebarLogo,
+              maxWidth: '140px',
+              maxHeight: '140px',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain'
+            }} />
         </div>
         <nav style={styles.nav}>
           {[
@@ -1237,7 +1311,11 @@ export default function ParcelManagementSystem() {
             <Icons.Menu width={24} height={24} />
           </button>
           <div style={styles.headerInstitution}>
-            <img src={IPGKPP_LOGO} alt="IPGKPP" style={styles.headerInstitutionLogo} />
+            <img src={IPGKPP_LOGO} alt="IPGKPP" style={{
+              ...styles.headerInstitutionLogo,
+              height: '45px',
+              width: 'auto'
+            }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`} style={styles.themeToggle} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = styles.themeToggleHover; }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = styles.btnSecondaryBg; }}>
@@ -1345,11 +1423,10 @@ export default function ParcelManagementSystem() {
         <div style={styles.content}>
           <div style={styles.contentBg} />
           <div style={styles.contentInner}>
-            <div style={styles.pageBanner}>
-              <img src={IPGKPP_LOGO} alt="IPGKPP" style={styles.bannerLogo} />
-              <div style={styles.bannerText}>
-                <h2 style={styles.bannerTitle}>INSTITUT PENDIDIKAN GURU KAMPUS PULAU PINANG</h2>
-                <p style={styles.bannerSubtitle}>IPGKPP Smart Rack Parcel Management System — {viewTitles[view] || 'Dashboard'}</p>
+            <div style={{ ...styles.pageBanner, justifyContent: 'center' }}>
+              <div style={{ ...styles.bannerText, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%' }}>
+                <h2 style={{ ...styles.bannerTitle, textAlign: 'center' }}>INSTITUT PENDIDIKAN GURU KAMPUS PULAU PINANG</h2>
+                <p style={{ ...styles.bannerSubtitle, textAlign: 'center' }}>IPGKPP Smart Rack Parcel Management System — {viewTitles[view] || 'Dashboard'}</p>
               </div>
             </div>
 
