@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Icons } from './Icons';
 import { Modal } from './Modal';
 import { createStyles } from '../utils/theme';
@@ -9,9 +9,8 @@ export function UniversalScanner({ onScan, onClose, theme }) {
   const [scannerContainerId] = useState(() => `barcode-scanner-container-${Date.now()}`);
 
   const [isScanning, setIsScanning] = useState(false);
-  const [lastScanned, setLastScanned] = useState('');
   const [error, setError] = useState('');
-  const [isLibraryLoaded, setIsLibraryLoaded] = useState(false);
+  const [isLibraryLoaded, setIsLibraryLoaded] = useState(() => Boolean(window.Html5Qrcode));
   const [isStarting, setIsStarting] = useState(false);
   const [hasCamera, setHasCamera] = useState(null);
 
@@ -20,7 +19,7 @@ export function UniversalScanner({ onScan, onClose, theme }) {
   const isSecureContext = typeof window !== 'undefined' && window.isSecureContext;
   const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '');
 
-  const checkCameraAvailability = async () => {
+  const checkCameraAvailability = useCallback(async () => {
     if (!isSecureContext && !isLocalhost) {
       setHasCamera(false);
       return false;
@@ -34,14 +33,17 @@ export function UniversalScanner({ onScan, onClose, theme }) {
       const cameras = devices.filter(d => d.kind === 'videoinput');
       setHasCamera(cameras.length > 0);
       return cameras.length > 0;
-    } catch (err) {
+    } catch {
       setHasCamera(false);
       return false;
     }
-  };
+  }, [isLocalhost, isSecureContext]);
 
   useEffect(() => {
-    if (window.Html5Qrcode) { setIsLibraryLoaded(true); checkCameraAvailability(); return; }
+    if (window.Html5Qrcode) {
+      const cameraCheckTimer = window.setTimeout(checkCameraAvailability, 0);
+      return () => window.clearTimeout(cameraCheckTimer);
+    }
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
     script.async = true;
@@ -49,7 +51,7 @@ export function UniversalScanner({ onScan, onClose, theme }) {
     script.onerror = () => setError('Failed to load scanner library. Please check your internet connection.');
     document.head.appendChild(script);
     return () => { if (document.head.contains(script)) document.head.removeChild(script); };
-  }, []);
+  }, [checkCameraAvailability]);
 
   const safeStopScanner = async () => {
     if (!isUnmountingRef.current) setIsStarting(true);
@@ -86,26 +88,22 @@ export function UniversalScanner({ onScan, onClose, theme }) {
 
     setError('');
     setIsStarting(true);
-    setLastScanned('');
     await safeStopScanner();
 
     try {
-      const devices = await window.Html5Qrcode.getCameras();
-      if (!devices || devices.length === 0) {
-        setError('No camera found');
-        setIsStarting(false);
-        return;
-      }
-
-      const backCamera = devices.find(d => d.label.toLowerCase().includes('back'));
-      const cameraId = backCamera ? backCamera.id : devices[0].id;
       const html5QrCode = new window.Html5Qrcode(scannerContainerId);
       qrInstanceRef.current = html5QrCode;
 
-      const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+      const config = {
+        fps: 10,
+        qrbox: (viewfinderWidth, viewfinderHeight) => ({
+          width: Math.min(250, Math.floor(viewfinderWidth * 0.8)),
+          height: Math.min(150, Math.floor(viewfinderHeight * 0.45)),
+        }),
+      };
 
       await html5QrCode.start(
-        cameraId, config,
+        { facingMode: 'environment' }, config,
         (decodedText) => {
           onScan(decodedText);
           if (qrInstanceRef.current) {
@@ -113,7 +111,6 @@ export function UniversalScanner({ onScan, onClose, theme }) {
             qrInstanceRef.current.clear().catch(() => { });
             qrInstanceRef.current = null;
           }
-          setLastScanned(decodedText);
           setIsScanning(false);
           setIsStarting(false);
         },
@@ -170,9 +167,13 @@ export function UniversalScanner({ onScan, onClose, theme }) {
           ) : (
             <>
               <div style={styles.scannerContainer}>
-                <div id={scannerContainerId} ref={scannerRef} style={{ width: '100%', minHeight: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.textSecondary, fontSize: '13px' }}>
-                  {!isScanning && !isStarting && 'Camera preview will appear here'}
-                </div>
+                {/* Keep this target empty: html5-qrcode owns all of its child DOM. */}
+                <div id={scannerContainerId} ref={scannerRef} style={{ width: '100%', minHeight: 'min(500px, 65vh)' }} />
+                {!isScanning && !isStarting && (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.textSecondary, fontSize: '13px', pointerEvents: 'none' }}>
+                    Camera preview will appear here
+                  </div>
+                )}
                 {isScanning && (<><div style={styles.scannerOverlay}></div><div style={styles.scannerLine}></div></>)}
               </div>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
